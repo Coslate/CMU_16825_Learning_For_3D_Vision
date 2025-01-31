@@ -6,6 +6,7 @@ import imageio
 import numpy as np
 
 from starter.dolly_zoom import dolly_zoom
+from starter.camera_transforms import render_textured_cow
 import starter.utils
 
 def setup_renderer(image_size=256):
@@ -137,4 +138,66 @@ if __name__ == "__main__":
     )
     cube_meshes = cube_meshes.to(device)  # Move mesh to GPU
     render_surround(cube_meshes, output_path=f"{args.output_path}/cube.gif", num_views=36, lights=lights, fps=12, device=device)
+    print(f"> Done.")
+
+    # Q3
+    print(f"> Executing Q3...")
+    color1 = torch.tensor([0, 0, 1])
+    color2 = torch.tensor([1, 0, 0])
+    texture_rgb = vertices.clone() # 1 x N_v x 3
+    alpha = (texture_rgb[:, :, 2] - texture_rgb[:, :, 2].min())/(texture_rgb[:, :, 2].max() - texture_rgb[:, :, 2].min())
+    for i in range(len(alpha[0])):
+        color = alpha[0][i]*color2 + (1-alpha[0][i])*color1
+        texture_rgb[0][i] = color
+    textures = pytorch3d.renderer.TexturesVertex(texture_rgb) # important
+
+    # Construct renderer and lights
+    renderer = starter.utils.get_mesh_renderer(image_size=args.image_size, device=device)
+    lights = pytorch3d.renderer.PointLights(location=[[0, 0, -3]], device=device)
+
+    # Construct meshes
+    retex_meshes = pytorch3d.structures.Meshes(
+        verts=vertices, # batched tensor or a list of tensors
+        faces=faces,
+        textures=textures,
+    )
+    retex_meshes = retex_meshes.to(device)  # Move mesh to GPU
+    render_surround(retex_meshes, output_path=f"{args.output_path}/retex_cow.gif", num_views=36, lights=lights, fps=12, device=device)
+    print(f"> Done.")
+
+    # Q4
+    print(f"> Executing Q4...")
+    # Transform1
+    print(f"> Transoform1")
+    T_relative1 = np.array([0, 0, 0])
+    R_relative1 = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]]).T
+    rend_result = render_textured_cow(cow_path='./data/cow_with_axis.obj', image_size=args.image_size, R_relative=R_relative1, T_relative=T_relative1, device=device)
+    plt.imsave(f"{args.output_path}/trans1_cow.jpg", rend_result)
+    print(f"> Done.")
+    # Transform2
+    print(f"> Transoform2")
+    T_relative2 = np.array([0, 0, 2])
+    R_relative2 = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]).T
+    rend_result = render_textured_cow(cow_path='./data/cow_with_axis.obj', image_size=args.image_size, R_relative=R_relative2, T_relative=T_relative2, device=device)
+    plt.imsave(f"{args.output_path}/trans2_cow.jpg", rend_result)
+    print(f"> Done.")
+    # Transform3
+    print(f"> Transoform3")
+    T_relative3 = np.array([0.35, -0.5, 0])
+    theta = -5 #degree
+    R_relative3 = np.array([[np.cos(np.pi/180*(theta)), 0, np.sin(np.pi/180*(theta))],
+                            [0, 1, 0],
+                            [-np.sin(np.pi/180*(theta)), 0, np.cos(np.pi/180*(theta))]]).T
+    rend_result = render_textured_cow(cow_path='./data/cow_with_axis.obj', image_size=args.image_size, R_relative=R_relative3, T_relative=T_relative3, device=device)
+    plt.imsave(f"{args.output_path}/trans3_cow.jpg", rend_result)
+    print(f"> Done.")
+    # Transform4
+    print(f"> Transoform4")
+    T_relative4 = np.array([-3, 0, 3])
+    theta = -90 #degree
+    R_relative4 = np.array([[np.cos(np.pi/180*(theta)), 0, np.sin(np.pi/180*(theta))],
+                            [0, 1, 0],
+                            [-np.sin(np.pi/180*(theta)), 0, np.cos(np.pi/180*(theta))]]).T
+    rend_result = render_textured_cow(cow_path='./data/cow_with_axis.obj', image_size=args.image_size, R_relative=R_relative4, T_relative=T_relative4, device=device)
+    plt.imsave(f"{args.output_path}/trans4_cow.jpg", rend_result)
     print(f"> Done.")
