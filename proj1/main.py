@@ -325,6 +325,8 @@ def render_torus_mesh(image_size=256, voxel_size=64, min_value=-10, max_value=10
     #print(f"========profiling-begin=======")
     #print(f"==============================")
     process = psutil.Process(os.getpid())
+    cap_r = torch.tensor(cap_r)  # Ensure it's a tensor
+    r = torch.tensor(r)          # Ensure it's a tensor    
     if torch.cuda.is_available():
         torch.cuda.synchronize()
         gpu_mem_before = torch.cuda.memory_allocated() / (1024 ** 2)
@@ -335,7 +337,7 @@ def render_torus_mesh(image_size=256, voxel_size=64, min_value=-10, max_value=10
     #print(f"============================")
 
     X, Y, Z = torch.meshgrid([torch.linspace(min_value, max_value, voxel_size)] * 3)
-    voxels = np.pow(cap_r - np.sqrt(np.pow(X, 2) + np.pow(Y, 2)), 2) + np.pow(Z, 2) - np.pow(r, 2)
+    voxels = torch.pow(cap_r - torch.sqrt(torch.pow(X, 2) + torch.pow(Y, 2)), 2) + torch.pow(Z, 2) - torch.pow(r, 2)
     
     vertices, faces = mcubes.marching_cubes(mcubes.smooth(voxels), isovalue=0)
     vertices = torch.tensor(vertices).float()
