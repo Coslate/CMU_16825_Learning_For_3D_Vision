@@ -8,6 +8,7 @@ import mcubes
 import time
 import psutil
 import os
+from PIL import Image
 
 from starter.dolly_zoom import dolly_zoom
 from starter.camera_transforms import render_textured_cow
@@ -15,6 +16,65 @@ from starter.render_generic import load_rgbd_data
 from starter.utils import unproject_depth_image
 import starter.utils
 from starter.utils import get_device
+
+def sample_distribution(num_samples=5, distribution=None) -> []:
+    '''
+    distribution: (N, ) array of probability distribution from sample1 to sampleN
+    sample_index: (M, ) array of sampled index follow the probability distribution
+    '''
+    sample_index = []
+    for i in range(num_samples):
+        u = torch.rand(1)
+        for index, prob in enumerate(distribution):
+            u -= prob
+            if u <= 0:
+                sample_index.append(index)
+                break
+
+    return sample_index
+
+def sample_points_from_mesh(verts, faces, num_samples) -> torch.Tensor:
+    """
+    verts: (V, 3) tensor of mesh vertices.
+    faces: (F, 3) tensor of vertex indices forming faces.
+    sampled_points: (num_samples, 3) tensor of sampled points.
+    """
+    # Compute face vertices
+    A = verts[faces[:, 0]]  # (F, 3)
+    B = verts[faces[:, 1]]  # (F, 3)
+    C = verts[faces[:, 2]]  # (F, 3)
+
+    # Compute face areas (used for weighted sampling)
+    AB = B - A  # Edge vector
+    AC = C - A  # Edge vector
+    face_areas = 0.5 * torch.norm(torch.linalg.cross(AB, AC), dim=1)  # (F,)
+    
+    # Normalize to create a probability distribution
+    face_probs = face_areas / face_areas.sum()
+
+    # Sample faces based on area-weighted probabilities
+    face_indices = torch.multinomial(face_probs, num_samples, replacement=True)
+    #face_indices = sample_distribution(num_samples, face_probs) #same as the above line
+
+    # Retrieve selected faces
+    A_samples = A[face_indices]
+    B_samples = B[face_indices]
+    C_samples = C[face_indices]
+
+    # Sample random barycentric coordinates: To make sure the sampling inside a triangle is distributed evenly
+    u = torch.rand(num_samples, 1)
+    v = torch.rand(num_samples, 1)
+    
+    sqrt_u = torch.sqrt(u)
+    lambda_1 = 1 - sqrt_u
+    lambda_2 = sqrt_u * (1 - v)
+    lambda_3 = v * sqrt_u
+
+    # Compute final sampled points using barycentric interpolation
+    sampled_points = lambda_1 * A_samples + lambda_2 * B_samples + lambda_3 * C_samples
+
+    return sampled_points
+
 
 def setup_renderer(image_size=256):
     # Equal to: renderer = starter.utils.get_mesh_renderer(image_size=image_size, device=device)
@@ -29,6 +89,100 @@ def setup_renderer(image_size=256):
     )    
 
     return renderer
+
+def render_UFO_cow(dist=3, output_path="./output/custom_fun.gif", device=None, num_views=24, fps=15, renderer=None):
+    #========================== UFO object===============================#
+    obj_filename = "./data/ufo/UFO_Empty_OBJ/UFO_Empty.obj"
+    texture_filename = "./data/ufo/textures/UFO_color.jpg"
+
+    # Load the mesh
+    ufo_verts, ufo_faces, ufo_aux = pytorch3d.io.load_obj(obj_filename, load_textures=False)
+    ufo_verts = ufo_verts+torch.tensor([0, 3, 0])
+
+    # Load the texture image
+    texture_image = Image.open(texture_filename).convert("RGB")
+    texture_image = np.array(texture_image) / 255.0  # Normalize to [0,1]
+
+    # Convert texture to tensor
+    texture_image = torch.tensor(texture_image, dtype=torch.float32).to(device)
+
+    # Get UV coordinates and faces
+    verts_uvs = ufo_aux.verts_uvs.to(device) if ufo_aux.verts_uvs is not None else None
+    faces_uvs = ufo_faces.textures_idx.to(device) if ufo_faces.textures_idx is not None else None
+
+    # Create a texture object
+    ufo_textures = pytorch3d.renderer.Textures(verts_uvs=[verts_uvs], faces_uvs=[faces_uvs], maps=[texture_image]).to(device)
+
+    # Create a Meshes object
+    #ufo_mesh = pytorch3d.structures.Meshes(verts=[verts.to(device)], faces=[faces.verts_idx.to(device)], textures=textures).to(device)
+    #========================== cow object===============================#
+    obj_filename = "./data/cow.obj"
+    texture_filename = "./data/cow_texture.png"
+
+    # Load the mesh
+    verts, faces, aux = pytorch3d.io.load_obj(obj_filename, load_textures=False)
+    verts = verts+torch.tensor([0, -3, 0])
+
+    # Load the texture image
+    texture_image = Image.open(texture_filename).convert("RGB")
+    texture_image = np.array(texture_image) / 255.0  # Normalize to [0,1]
+
+    # Convert texture to tensor
+    texture_image = torch.tensor(texture_image, dtype=torch.float32).to(device)
+
+    # Get UV coordinates and faces
+    verts_uvs = aux.verts_uvs.to(device) if aux.verts_uvs is not None else None
+    faces_uvs = faces.textures_idx.to(device) if faces.textures_idx is not None else None
+
+    # Create a texture object
+    cow_textures = pytorch3d.renderer.Textures(verts_uvs=[verts_uvs], faces_uvs=[faces_uvs], maps=[texture_image]).to(device)
+    
+    # Rendering setup
+    rotation_angles = np.linspace(0, 2 * np.pi, num_views)  # 360-degree rotation
+    y_positions = np.linspace(-3, 3, num_views)  # Smooth upward motion
+    lights = pytorch3d.renderer.PointLights(location=[[0, 0, -3]], device=device)
+
+
+    # Store frames for GIF
+    frames = []
+
+    # Iterate through frames to create smooth motion and rotation
+    for i in range(num_views):
+        # Move cow along y-axis
+        translated_verts = verts.clone().to(device)
+        translated_verts[:, 1] += y_positions[i]  # Apply y-axis translation
+
+        # Apply rotation to cow
+        cow_rotation_matrix = pytorch3d.transforms.axis_angle_to_matrix(torch.tensor([0, rotation_angles[i], 0], dtype=torch.float32))
+        translated_verts = torch.matmul(translated_verts, cow_rotation_matrix.to(device))
+
+        # Create cow mesh
+        cow_mesh = pytorch3d.structures.Meshes(verts=[translated_verts], faces=[faces.verts_idx.to(device)], textures=cow_textures)
+
+        # Rotate UFO
+        ufo_rotation_matrix = pytorch3d.transforms.axis_angle_to_matrix(torch.tensor([0, -rotation_angles[i], 0], dtype=torch.float32))
+        ufo_verts_rotated = torch.matmul(ufo_verts.to(device), ufo_rotation_matrix.to(device))
+        ufo_mesh_rotated = pytorch3d.structures.Meshes(verts=[ufo_verts_rotated], faces=[ufo_faces.verts_idx.to(device)], textures=ufo_textures)
+
+        # Combine UFO and moving cow into one scene
+        joint_mesh = pytorch3d.structures.join_meshes_as_scene([cow_mesh, ufo_mesh_rotated])
+
+        R, T = pytorch3d.renderer.look_at_view_transform(
+            dist=dist,
+            elev=0,
+            azim=0,
+        )
+        camera = pytorch3d.renderer.FoVPerspectiveCameras(
+            R=R,
+            T=T,
+            device=device
+        )
+        image = renderer(joint_mesh, cameras=camera, lights=lights)
+        frame = (image[0].cpu().numpy()[:, :, :3] * 255).astype('uint8')
+        frames.append(frame)
+
+    # Save as looping animated GIF
+    imageio.mimsave(output_path, frames, fps=15, loop=0, palettesize=256)  # loop=0 makes it infinite    
 
 def render_custom(image_size=256, num_samples=200, device=None, num_views=24, fps=12, dist=3, a=1, c=1, output_path="./outputs", point_cloud_renderer=None, lights=None):
     """
@@ -251,7 +405,7 @@ def render_point(point_clouds=None, output_path="./outputs", num_views=12, light
     duration = 1000 // fps  # Convert FPS (frames per second) to duration (ms per frame)
     imageio.mimsave(output_path, my_images, duration=duration, loop=0, palettesize=256)
 
-def render_surround(meshes=None, output_path="./outputs", num_views=12, lights=None, fps=15, device=None, dist=3):
+def render_surround(meshes=None, output_path="./outputs", num_views=12, lights=None, fps=15, device=None, dist=3, renderer=None):
     R, T = pytorch3d.renderer.look_at_view_transform(
         dist=dist,
         elev=0,
@@ -282,7 +436,6 @@ if __name__ == "__main__":
 
     point_cloud_renderer = starter.utils.get_points_renderer(device=device, radius=0.03)
 
-    '''
     # Load data and prepare vertix, face, texture
     vertices, faces = starter.utils.load_cow_mesh(path=args.cow_path)
     vertices = vertices.unsqueeze(0)  # 1 x N_v x 3
@@ -305,7 +458,7 @@ if __name__ == "__main__":
 
     # Q1.1
     print(f"> Executing Q1.1...")
-    render_surround(meshes, output_path=f"{args.output_path}/360_cow.gif", num_views=36, lights=lights, fps=15, device=device)
+    render_surround(meshes, output_path=f"{args.output_path}/360_cow.gif", num_views=36, lights=lights, fps=15, device=device, renderer=renderer)
     print(f"> Done.")
 
     # Q1.2
@@ -329,7 +482,7 @@ if __name__ == "__main__":
         textures=tetra_textures,
     )
     tetra_meshes = tetra_meshes.to(device)  # Move mesh to GPU
-    render_surround(tetra_meshes, output_path=f"{args.output_path}/tetrahedron.gif", num_views=36, lights=lights, fps=15, device=device)
+    render_surround(tetra_meshes, output_path=f"{args.output_path}/tetrahedron.gif", num_views=36, lights=lights, fps=15, device=device, renderer=renderer)
     print(f"> Done.")
 
     # Q2.2
@@ -368,7 +521,7 @@ if __name__ == "__main__":
         textures=cube_textures,
     )
     cube_meshes = cube_meshes.to(device)  # Move mesh to GPU
-    render_surround(cube_meshes, output_path=f"{args.output_path}/cube.gif", num_views=36, lights=lights, fps=12, device=device)
+    render_surround(cube_meshes, output_path=f"{args.output_path}/cube.gif", num_views=36, lights=lights, fps=12, device=device, renderer=renderer)
     print(f"> Done.")
 
     # Q3
@@ -393,7 +546,7 @@ if __name__ == "__main__":
         textures=textures,
     )
     retex_meshes = retex_meshes.to(device)  # Move mesh to GPU
-    render_surround(retex_meshes, output_path=f"{args.output_path}/retex_cow.gif", num_views=36, lights=lights, fps=12, device=device)
+    render_surround(retex_meshes, output_path=f"{args.output_path}/retex_cow.gif", num_views=36, lights=lights, fps=12, device=device, renderer=renderer)
     print(f"> Done.")
 
     # Q4
@@ -471,7 +624,6 @@ if __name__ == "__main__":
     render_point(point_clouds=pointcloud2, output_path=f"{args.output_path}/point_cloud2.gif", num_views=24, lights=None, fps=12, device=device, dist=6, elev=0, azim=0, point_cloud_renderer=point_cloud_renderer, R_relative=R_relative)
     render_point(point_clouds=pointcloud3, output_path=f"{args.output_path}/point_cloud3.gif", num_views=24, lights=None, fps=12, device=device, dist=6, elev=0, azim=0, point_cloud_renderer=point_cloud_renderer, R_relative=R_relative)
     print(f"> Done.")
-    '''
 
     # Q5.2
     print(f"> Q5.2")
@@ -483,6 +635,50 @@ if __name__ == "__main__":
     print(f"> Q5.3")
     render_torus_mesh(image_size=512, voxel_size=600, min_value=-10, max_value=10, cap_r=3, r=1.5, device=device, dist=10, num_views=36, output_path=f"{args.output_path}/torus_mesh.gif", fps=12)
     render_custom_mesh(image_size=512, voxel_size=64, min_value=-10, max_value=10, a=1, b=1, c=1, device=device, dist=25, num_views=36, output_path=f"{args.output_path}/custom_two_sheet_hyperboloid_mesh.gif", fps=12)
+    print(f"> Done.")
+
+    # Q6
+    print(f"> Q6")
+    ufo_renderer = starter.utils.get_mesh_renderer(image_size=512, device=device)
+    render_UFO_cow(dist=10, output_path=f"{args.output_path}/custom_fun.gif", device=device, num_views=24, fps=15, renderer=ufo_renderer)
+    print(f"> Done.")
+
+    # Q7
+    print(f"> Q7")
+    verts = vertices.squeeze(0)  # 1 x N_v x 3
+    faces = faces.squeeze(0)  # 1 x N_f x 3
+    num_samples_list = [10, 100, 1000, 10000]
+    num_views = 24
+    fps = 15
+    output_path = f"{args.output_path}/"
+    dist = 3
+
+    point_cloud_renderer_q7 = starter.utils.get_points_renderer(device=device, radius=0.015)
+    mesh_renderer_q7 = starter.utils.get_mesh_renderer(image_size=512, device=device)
+    render_surround(meshes, output_path=f"{args.output_path}/original_cow.gif", num_views=num_views, lights=lights, fps=fps, device=device, renderer=mesh_renderer_q7)
+
+    for num_samples in num_samples_list:
+        points = sample_points_from_mesh(verts, faces, num_samples)
+        color = (points - points.min()) / (points.max() - points.min())
+
+        point_cloud = pytorch3d.structures.Pointclouds(
+            points=[points], features=[color],
+        ).to(device)
+
+        R, T = pytorch3d.renderer.look_at_view_transform(
+            dist=dist,
+            elev=0,
+            azim=np.linspace(-180, 180, num_views, endpoint=False),
+        )
+        many_cameras = pytorch3d.renderer.FoVPerspectiveCameras(
+            R=R,
+            T=T,
+            device=device
+        )
+        images = point_cloud_renderer_q7(point_cloud.extend(num_views), cameras=many_cameras, lights=lights)
+        my_images = [((image.cpu().numpy()[:, :, :3] * 255).astype('uint8')) for image in images]
+        duration = 1000 // fps  # Convert FPS (frames per second) to duration (ms per frame)
+        imageio.mimsave(output_path+f"cow_sampled{num_samples}.gif", my_images, duration=duration, loop=0, palettesize=256)
     print(f"> Done.")
     
 
