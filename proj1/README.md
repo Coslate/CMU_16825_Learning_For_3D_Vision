@@ -1,9 +1,19 @@
 # 16-825 Assignment 1: Rendering Basics with PyTorch3D (Total: 100 Points + 10 Bonus)
 
+## How to Run
+
+Use the following command under the folder having main.py.
+
+`python3 ./main.py`
+
+Check the results in ./outputs/*
+
 Goals: In this assignment, you will learn the basics of rendering with PyTorch3D,
 explore 3D representations, and practice constructing simple geometry.
 
 You may also find it helpful to follow the [Pytorch3D tutorials](https://github.com/facebookresearch/pytorch3d).
+
+Check the results in ./outputs/*
 
 ## 0. Setup
 
