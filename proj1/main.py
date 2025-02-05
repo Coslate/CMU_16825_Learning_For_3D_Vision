@@ -436,6 +436,11 @@ if __name__ == "__main__":
     else:
         device = torch.device("cpu")    
 
+    # Ensure the output directory exists
+    if not os.path.exists(args.output_path):
+        os.makedirs(args.output_path)
+        print(f"Created output directory: {args.output_path}")        
+
     point_cloud_renderer = starter.utils.get_points_renderer(device=device, radius=0.03)
 
     # Load data and prepare vertix, face, texture
