@@ -13,8 +13,6 @@ explore 3D representations, and practice constructing simple geometry.
 
 You may also find it helpful to follow the [Pytorch3D tutorials](https://github.com/facebookresearch/pytorch3d).
 
-Check the results in ./outputs/*
-
 ## 0. Setup
 
 You will need to install Pytorch3d. See the directions for your platform
