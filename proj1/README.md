@@ -51,6 +51,11 @@ pip install -r requirements.txt
 
 Make sure that you have gcc $\ge$ 4.9.
 
+## Note
+My install command:
+`conda install pytorch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 pytorch-cuda=12.4 -c pytorch -c nvidia`
+`conda install pytorch3d -c conda-forge -c pytorch3d`
+
 ### 0.1 Rendering your first mesh
 
 To render a mesh using Pytorch3D, you will need a mesh that defines the geometry and
