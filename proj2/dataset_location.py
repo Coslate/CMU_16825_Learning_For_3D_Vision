@@ -1,6 +1,6 @@
 # specify the root location where u downloaded the dataset
 root_location = "/CMU_16825_Work/CMU_16825_Learning_For_3D_Vision/proj2"
-use_full_dataset = False
+use_full_dataset = True
 dataset_name = (
     "r2n2_shapenet_dataset_full" if use_full_dataset else "r2n2_shapenet_dataset"
 )
