@@ -16,6 +16,9 @@ Please follow the following steps to install necessary packages:
 10. pip install -r ./requirement.txt
 
 Followng are the commands to run each of the questions:
+Note: For Question 1.1 to Question 3.1, please set the following two lines in dataset_loaction.py 
+use_full_dataset = False
+use_03001627_set = False
 
 #Question 1.1
 python fit_data.py --type 'vox'
@@ -122,6 +125,30 @@ If you do not train using above command:
 2. Run:
  python ./eval_model_occ.py --type 'occ' --load_checkpoint --eval_chk_file ./test_chkpt_model4_3_bceloss/checkpoint_occ.pth --output_eval_path ./test_chkpt_model4_3_bceloss
 
+ #Question 3.3
+ #Train
+ 1. Step1. set following setting in dataset_location.py:
+use_full_dataset = True
+use_03001627_set = False
+ 2. Run:
+  python train_model.py --type 'point' --save_freq 600 --lr_sch_on 1 --n_point 5000 --max_iter 8001 --lr 9e-5 --batch_size 32 --num_workers 14 --early_stop_iter 601 --output_path ./test_chkpt_point_full
+
+#Eval
+#Test on extended test set containing three classes:
+ 1. Step1. set following setting in dataset_location.py:
+use_full_dataset = True
+use_03001627_set = False
+ 2. If you do not train using above command:
+ Download weight to ./test_chkpt_point_full from this link: https://drive.google.com/file/d/1a3Y0rqNlV9Ng7CdzJikvfNrSJL7ocBVd/view?usp=sharing
+ 3. Run:
+python eval_model.py --type 'point' --num_workers 14  --load_checkpoint --n_points 5000 --use_full_ds 1 --eval_chk_file ./test_chkpt_point_full/checkpoint_point.pth --output_eval_path ./test_chkpt_point_full/
+
+#Test on single chair class test set:
+ 1. Step1. set following setting in dataset_location.py:
+use_full_dataset = True
+use_03001627_set = True
+ 2. Run:
+python eval_model.py --type 'point' --num_workers 14  --load_checkpoint --n_points 5000 --use_full_ds 0 --eval_chk_file ./test_chkpt_point_full/checkpoint_point.pth --output_eval_path ./test_chkpt_point_03001627/
 
 ## Table of Contents
 0. [Setup](#0-setup)

@@ -54,6 +54,7 @@ def get_args_parser():
     parser.add_argument('--vis_freq', default=1, type=int)
     parser.add_argument('--eval_chk_file', default=f'./outputs/checkpoint.pth', type=str)
     parser.add_argument('--output_eval_path', default=f'./outputs', type=str)
+    parser.add_argument('--use_full_ds', default=0, type=int)
     return parser    
 
 def preprocess(feed_dict, args):
@@ -228,15 +229,24 @@ def evaluate_model(args):
                     render_pure_mesh(mesh_src=mesh_gt, dist=3, num_views=20, device_tag=args.device, image_size=256, output_path = f"{args.output_eval_path}/q2.1_step_{step}_f1_{f1_05}_groundtruth_mesh.gif", fps=10)
             elif args.type == "point":
                 #if metrics['F1@0.050000'] > 75 and (step == 5 or step == 64 or step == 76):
-                if (step == 5 or step == 64 or step == 76):
+                r2n2_pt_sample = [5, 64, 76]
+                r2n2_pt_sample_full = [93, 608, 1342]
+                if ((step in r2n2_pt_sample) and (args.use_full_ds == 0)) or ((step in r2n2_pt_sample_full) and (args.use_full_ds == 1)):
                     f1_05 = metrics['F1@0.050000'].item()
                     f1_05_str = f"{f1_05:.4f}"
                     out_img = images_gt[0, ..., :3].detach().cpu().numpy()
 
-                    plt.imsave(f'{args.output_eval_path}/gt_image_step_{step}_{args.type}.png', out_img)
-                    render_point_cloud(src_points=predictions.squeeze(0), image_size=256, device_tag=args.device, num_views=20, fps=10, dist=3, radius=0.01, output_path=f"{args.output_eval_path}/q2.2_step_{step}_f1_{f1_05}_optimized_point.gif")
-                    render_point_cloud(src_points=pointclouds_tgt, image_size=256, device_tag=args.device, num_views=20, fps=10, dist=3, radius=0.01, output_path=f"./{args.output_eval_path}/q2.2_step_{step}_f1_{f1_05}_groundtruth_point.gif")
-                    render_pure_mesh(mesh_src=mesh_gt, dist=3, num_views=20, device_tag=args.device, image_size=256, output_path = f"{args.output_eval_path}/q2.2_step_{step}_f1_{f1_05}_groundtruth_mesh.gif", fps=10)
+                    if args.use_full_ds == 0:
+                        plt.imsave(f'{args.output_eval_path}/gt_image_step_{step}_{args.type}.png', out_img)
+                        render_point_cloud(src_points=predictions.squeeze(0), image_size=256, device_tag=args.device, num_views=20, fps=10, dist=3, radius=0.01, output_path=f"{args.output_eval_path}/q2.2_step_{step}_f1_{f1_05}_optimized_point.gif")
+                        render_point_cloud(src_points=pointclouds_tgt, image_size=256, device_tag=args.device, num_views=20, fps=10, dist=3, radius=0.01, output_path=f"./{args.output_eval_path}/q2.2_step_{step}_f1_{f1_05}_groundtruth_point.gif")
+                        render_pure_mesh(mesh_src=mesh_gt, dist=3, num_views=20, device_tag=args.device, image_size=256, output_path = f"{args.output_eval_path}/q2.2_step_{step}_f1_{f1_05}_groundtruth_mesh.gif", fps=10)
+                    elif args.use_full_ds == 1:
+                        plt.imsave(f'{args.output_eval_path}/gt_image_step_{step}_{args.type}.png', out_img)
+                        render_point_cloud(src_points=predictions.squeeze(0), image_size=256, device_tag=args.device, num_views=20, fps=10, dist=3, radius=0.01, output_path=f"{args.output_eval_path}/q3.3_step_{step}_f1_{f1_05}_optimized_point.gif")
+                        render_point_cloud(src_points=pointclouds_tgt, image_size=256, device_tag=args.device, num_views=20, fps=10, dist=3, radius=0.01, output_path=f"./{args.output_eval_path}/q3.3_step_{step}_f1_{f1_05}_groundtruth_point.gif")
+                        render_pure_mesh(mesh_src=mesh_gt, dist=3, num_views=20, device_tag=args.device, image_size=256, output_path = f"{args.output_eval_path}/q3.3_step_{step}_f1_{f1_05}_groundtruth_mesh.gif", fps=10)
+
             elif args.type == "mesh":
                 #if metrics['F1@0.050000'] > 70 and (step == 13 or step == 110 or step == 51):
                 if (step == 13 or step == 110 or step == 51):

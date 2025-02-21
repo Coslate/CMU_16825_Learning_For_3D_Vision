@@ -3,6 +3,18 @@ from pytorch3d.ops.knn import knn_points
 from pytorch3d.loss import mesh_laplacian_smoothing
 from pytorch3d.loss import chamfer_distance
 
+import torch.nn.functional as F
+
+def focal_loss(logits, targets, alpha=0.5, gamma=1.8):
+    probs = torch.sigmoid(logits)
+    pt = torch.where(targets == 1, probs, 1 - probs)  # Select the correct probability
+    focal_weight = (alpha * targets + (1 - alpha) * (1 - targets)) * ((1 - pt) ** gamma)
+
+    # Detach focal_weight to prevent gradient issues
+    focal_weight = focal_weight.detach()  
+
+    return F.binary_cross_entropy_with_logits(logits, targets, weight=focal_weight)
+
 # define losses
 def occ_loss(src, tgt, use_logit=True):
 	# voxel_src: b*num_samples x 1
@@ -16,6 +28,9 @@ def occ_loss(src, tgt, use_logit=True):
 
 		bce_loss = torch.nn.BCEWithLogitsLoss()  
 		loss = bce_loss(torch.clamp(src, min=-10, max=10), tgt)  # Clamp logits, used by model_occnet2.py	
+		#bce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=torch.tensor([2.0], device=src.device))  # Boost weight for occupied class
+		#loss = bce_loss(src, tgt)		
+		#loss = focal_loss(src, tgt, alpha=0.5, gamma=3)
 	else:
 		loss = torch.nn.functional.binary_cross_entropy(src, tgt)
 	return loss
