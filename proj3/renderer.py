@@ -96,7 +96,7 @@ class VolumeRenderer(torch.nn.Module):
 
 
             # TODO (1.5): Render depth map
-            depth = torch.sum(weights * depth_values.reshape(-1, n_pts, 1), dim=-2)  # (H*W, 1)
+            depth = self._aggregate(weights, depth_values.reshape(-1, n_pts, 1))  # (H*W, 1)
 
             # Return
             cur_out = {
