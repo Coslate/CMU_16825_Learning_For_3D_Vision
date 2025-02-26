@@ -23,18 +23,32 @@ class VolumeRenderer(torch.nn.Module):
         eps: float = 1e-10
     ):
         # TODO (1.5): Compute transmittance using the equation described in the README
-        pass
+        # Compute prob to hit
+        prob = 1.0 - torch.exp(-rays_density * deltas)  # (H*W, n_pts_per_ray, 1)
 
-        # TODO (1.5): Compute weight used for rendering from transmittance and alpha
+        # Compute survival probability (1 - prob) with numerical stability
+        survival_prob = 1.0 - prob + eps  # (H*W, n_pts_per_ray, 1)
+
+        # Initialize transmittance with first value as 1
+        T_init = torch.ones_like(prob[..., :1, :])  # (H*W, 1, 1)
+
+        # Concatenate T_init with survival probabilities
+        T_full = torch.cat([T_init, survival_prob], dim=-2)  # (H*W, n_pts_per_ray + 1, 1)
+
+        # Compute cumulative product to get transmittance
+        transmittance = torch.cumprod(T_full, dim=-2)[..., :-1, :]  # (H*W, n_pts_per_ray, 1)
+
+        weights = transmittance * prob  # (H*W, n_pts_per_ray, 1)
+
         return weights
     
     def _aggregate(
         self,
-        weights: torch.Tensor,
-        rays_feature: torch.Tensor
+        weights: torch.Tensor, #(H*W, n_pts_per_ray, 1)
+        rays_feature: torch.Tensor #(H*W, n_pts_per_ray, C)
     ):
         # TODO (1.5): Aggregate (weighted sum of) features using weights
-        pass
+        feature = torch.sum(weights * rays_feature, dim=-2)  # (H*W, C)
 
         return feature
 
@@ -65,30 +79,30 @@ class VolumeRenderer(torch.nn.Module):
             depth_values = cur_ray_bundle.sample_lengths[..., 0]
             deltas = torch.cat(
                 (
-                    depth_values[..., 1:] - depth_values[..., :-1],
-                    1e10 * torch.ones_like(depth_values[..., :1]),
+                    depth_values[..., 1:] - depth_values[..., :-1], #(H*W, n_pts_per_ray - 1)
+                    1e10 * torch.ones_like(depth_values[..., :1]), # enshure it does not contribute to volume rendering
                 ),
-                dim=-1,
-            )[..., None]
+                dim=-1, #(H*W, n_pts_per_ray)
+            )[..., None] #(H*W, n_pts_per_ray, 1)
 
             # Compute aggregation weights
             weights = self._compute_weights(
                 deltas.view(-1, n_pts, 1),
                 density.view(-1, n_pts, 1)
-            ) 
+            )  #(H*W, n_pts_per_ray, 1)
 
             # TODO (1.5): Render (color) features using weights
-            pass
+            feature = self._aggregate(weights, feature.reshape(-1, n_pts, 3))  # (H*W, C)
+
 
             # TODO (1.5): Render depth map
-            pass
+            depth = torch.sum(weights * depth_values.reshape(-1, n_pts, 1), dim=-2)  # (H*W, 1)
 
             # Return
             cur_out = {
                 'feature': feature,
                 'depth': depth,
             }
-
             chunk_outputs.append(cur_out)
 
         # Concatenate chunk outputs
@@ -165,7 +179,7 @@ class SphereTracingRenderer(torch.nn.Module):
             isect_color = implicit_fn.get_color(isect_points)
 
             # Return
-            color = torch.zeros_like(cur_ray_bundle.origins)
+            color = torch.zeros_like(cur_ray_bundle.origins) #(H*W, 3)
             color[mask] = isect_color.view(-1)
 
             cur_out = {

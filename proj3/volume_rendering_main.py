@@ -35,6 +35,8 @@ from dataset import (
     trivial_collate,
 )
 
+from render_functions import *
+
 
 # Model class containing:
 #   1) Implicit volume defining the scene
@@ -83,7 +85,8 @@ def render_images(
     cameras,
     image_size,
     save=False,
-    file_prefix=''
+    file_prefix='',
+    output_results_q1=True
 ):
     all_images = []
     device = list(model.parameters())[0].device
@@ -98,18 +101,40 @@ def render_images(
 
         # TODO (Q1.3): Visualize xy grid using vis_grid
         if cam_idx == 0 and file_prefix == '':
-            pass
+            output_folder = './'
+            if output_results_q1 == 1:
+                output_folder = './outputs_result'
+                if not os.path.exists(output_folder):
+                    os.makedirs(output_folder)
+                    print(f"Created output directory: {output_folder}")
+            out_xy_grid = vis_grid(xy_grid, image_size)
+            plt.imsave(f'{output_folder}/q1.3_vis_grid.png', out_xy_grid)
 
         # TODO (Q1.3): Visualize rays using vis_rays
         if cam_idx == 0 and file_prefix == '':
-            pass
+            output_folder = './'
+            if output_results_q1 == 1:
+                output_folder = './outputs_result'
+                if not os.path.exists(output_folder):
+                    os.makedirs(output_folder)
+                    print(f"Created output directory: {output_folder}")
+            out_rays = vis_rays(ray_bundle, image_size)
+            plt.imsave(f'{output_folder}/q1.3_vis_rays.png', out_rays)
         
         # TODO (Q1.4): Implement point sampling along rays in sampler.py
-        pass
+        ray_bundle_w_samplt_pts = model.sampler(ray_bundle)
 
         # TODO (Q1.4): Visualize sample points as point cloud
         if cam_idx == 0 and file_prefix == '':
-            pass
+            output_folder = './'
+            if output_results_q1 == 1:
+                output_folder = './outputs_result'
+                if not os.path.exists(output_folder):
+                    os.makedirs(output_folder)
+                    print(f"Created output directory: {output_folder}")
+
+            render_points(f'{output_folder}/q1.4_vis_points.png', ray_bundle_w_samplt_pts.sample_points.reshape(-1, 3).unsqueeze(0), image_size=256, color=[0.7, 0.7, 1], device=device)
+
 
         # TODO (Q1.5): Implement rendering in renderer.py
         out = model(ray_bundle)
@@ -124,7 +149,21 @@ def render_images(
 
         # TODO (Q1.5): Visualize depth
         if cam_idx == 2 and file_prefix == '':
-            pass
+            output_folder = './'
+            if output_results_q1 == 1:
+                output_folder = './outputs_result'
+                if not os.path.exists(output_folder):
+                    os.makedirs(output_folder)
+                    print(f"Created output directory: {output_folder}")
+
+            # Convert depth map to NumPy and save as an image
+            depth_map = out['depth'].view(image_size[1], image_size[0]).detach().cpu()
+            depth_max = torch.max(depth_map)  # Get max depth value
+            depth_map = depth_map / (depth_max + 1e-8)  # Normalize to [0,1] (avoid div by zero)
+            depth_map = np.array(depth_map)
+
+            # Save depth visualization
+            plt.imsave(f'{output_folder}/q1.5_depth_cam_{cam_idx}.png', depth_map)    
 
         # Save
         if save:
