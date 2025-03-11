@@ -10,9 +10,11 @@ renderer:
   type: volume_sdf
   chunk_size: 32768
   white_background: False
+  use_verbose_name: True
 
-  alpha: 10.0
+  alpha: 15
   beta: 0.05
+  #beta: 1
 
   relighting_function:
     type: none
@@ -25,7 +27,9 @@ sampler:
   max_depth: 6.0
 
 training:
-  num_epochs: 250
+  #num_epochs: 250
+  #num_epochs: 300
+  num_epochs: 151
   pretrain_iters: 1000
   batch_size: 1024
   lr: 0.0005
@@ -33,14 +37,17 @@ training:
   lr_scheduler_step_size: 50
   lr_scheduler_gamma: 0.8
 
-  checkpoint_path: ./volsdf_checkpoint
+  checkpoint_path: ./volsdf_checkpoint_alpha15_beta0.05
   checkpoint_interval: 50
   resume: True
 
   render_interval: 10
 
-  inter_weight: 0.1
-  eikonal_weight: 0.02
+  #inter_weight: 0.1
+  inter_weight: 0.3
+  #eikonal_weight: 0.02
+  eikonal_weight: 0.04
+  #eikonal_weight: 0.1
   bounds: [[-4, -4, -4], [4, 4, 4]]
 
 implicit_function:
@@ -49,9 +56,11 @@ implicit_function:
   n_harmonic_functions_xyz: 6
 
   n_layers_distance: 6
-  n_hidden_neurons_distance: 128
+  n_hidden_neurons_distance: 256
   append_distance: []
 
-  n_layers_color: 2
-  n_hidden_neurons_color: 128
+  #n_layers_color: 2
+  n_layers_color: 6
+  #n_hidden_neurons_color: 128
+  n_hidden_neurons_color: 256
   append_color: []

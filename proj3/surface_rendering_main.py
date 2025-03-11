@@ -38,6 +38,7 @@ from dataset import (
 )
 from render_functions import render_geometry
 from render_functions import render_points_with_save
+import torch.nn.functional as F
 
 
 # Model class containing:
@@ -233,7 +234,7 @@ def train_points(
 
             # Get distances and enforce point cloud loss
             distances, gradients = model.implicit_fn.get_distance_and_gradient(points)
-            loss = None # TODO (Q6): Point cloud SDF loss on distances
+            loss =  F.mse_loss(distances, torch.zeros_like(distances))# TODO (Q6): Point cloud SDF loss on distances
             point_loss = loss
 
             # Sample random points in bounding box
@@ -405,14 +406,21 @@ def train_images(
                 model, create_surround_cameras(4.0, n_poses=20, up=(0.0, 0.0, 1.0), focal_length=2.0),
                 cfg.data.image_size, file_prefix='volsdf'
             )
-            imageio.mimsave('images/part_7.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+
+            if cfg.renderer.get("use_verbose_name", False):
+                imageio.mimsave(f'images/part_7_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+            else:
+                imageio.mimsave(f'images/part_7.gif', [np.uint8(im * 255) for im in test_images], loop=0)
 
             try:
                 test_images = render_geometry(
                     model, create_surround_cameras(4.0, n_poses=20, up=(0.0, 0.0, 1.0), focal_length=2.0),
                     cfg.data.image_size, file_prefix='volsdf_geometry'
                 )
-                imageio.mimsave('images/part_7_geometry.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                if cfg.renderer.get("use_verbose_name", False):
+                    imageio.mimsave(f'images/part_7_geometry_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                else:
+                    imageio.mimsave(f'images/part_7_geometry.gif', [np.uint8(im * 255) for im in test_images], loop=0)
             except Exception as e:
                 print("Empty mesh")
                 pass

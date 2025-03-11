@@ -3,6 +3,7 @@ Assignment 3 : Neural Volume Rendering and Surface Rendering
 Goals: In this assignment, you will setup a differentiable rendering pipeline and implement neural volume/surface rendering techniques like NeRF and VolSDF.
 
 ## Table of Contents
+ - [How to Run](#how-to-run)
  - [Setup](#setup)
  - [A. Neural Volume Rendering (80 points)](#a-neural-volume-rendering-80-points)
     - [0. Transmittance Calculation (10)](#0-transmittance-calculation-10-points)
@@ -16,6 +17,116 @@ Goals: In this assignment, you will setup a differentiable rendering pipeline an
     - [7. VolSDF (15)](#7-volsdf-15-points)
     - [8. Neural Surface Extras (10 + 20 Extra)](#8-neural-surface-extras-choose-one-more-than-one-is-extra-credit)
 
+##  How to Run
+#Question 1.3
+python volume_rendering_main.py --config-name=box
+
+The outputs are ./outputs_result/q1.3_vis_grid.png and ./outputs_result/q1.3_vis_rays.png.
+
+#Question 1.4
+python volume_rendering_main.py --config-name=box
+
+The outputs are ./outputs_result/q1.4_vis_points.png.
+
+#Question 1.5
+python volume_rendering_main.py --config-name=box
+
+The outputs are ./images/part_1.gif and ./outputs_result/q1.5_depth_cam_2.png.
+
+#Question 2.1-2.3
+python volume_rendering_main.py --config-name=train_box
+
+The output is ./images/part_2.gif
+
+#Question 3.1
+step1. In ./configs/nerf_lego.yaml, set output_gif_file: ./images/part_3.nerf_lego.gif
+step2. In ./configs/nerf_lego.yaml, set checkpoint_path: ./checkpoints.q3.nerf_lego
+step3. In ./configs/nerf_lego.yaml, set use_views: False
+step4. Run: python volume_rendering_main.py --config-name=nerf_lego
+step5. Output: ./images/part_3.nerf_lego.gif
+
+#Question 4.1
+#For Lego Scene:
+step1. In ./configs/nerf_lego.yaml, set output_gif_file: ./images/part_4_1.nerf_lego.use_views.gif
+step2. In ./configs/nerf_lego.yaml, set checkpoint_path: ./checkpoints.q4_1.nerf_lego.use_views
+step3. In ./configs/nerf_lego.yaml, set use_views: True
+step4. Run: python volume_rendering_main.py --config-name=nerf_lego
+step5. Output: ./images/part_4_1.nerf_lego.use_views.gif
+
+#For Materials Scene:
+step1. In ./configs/nerf_materials.yaml, set output_gif_file: ./images/part_4_1.nerf_materials.gif
+step2. In ./configs/nerf_materials.yaml, set checkpoint_path: ./checkpoints.q4_1.nerf_materials
+step3. In ./configs/nerf_materials.yaml, set use_views: False
+step4. Run: python volume_rendering_main.py --config-name=nerf_materials
+step5. Output: ./images/part_4_1.nerf_materials.gif
+
+step1. In ./configs/nerf_materials.yaml, set output_gif_file: ./images/part_4_1.nerf_materials.use_views.gif
+step2. In ./configs/nerf_materials.yaml, set checkpoint_path: ./checkpoints.q4_1.nerf_materials.use_views
+step3. In ./configs/nerf_materials.yaml, set use_views: True
+step4. Run: python volume_rendering_main.py --config-name=nerf_materials
+step5. Output: ./images/part_4_1.nerf_materials.use_views.gif
+
+#For Materials_Highres Scene:
+step1. In ./configs/nerf_materials_highres.yaml, set output_gif_file: ./images/part_4_1.nerf_materials_highres.gif
+step2. In ./configs/nerf_materials_highres.yaml, set checkpoint_path: ./checkpoints.q4_1.nerf_materials_highres
+step3. In ./configs/nerf_materials_highres.yaml, set use_views: False
+step4. Run: python volume_rendering_main.py --config-name=nerf_materials_highres
+step5. Output: ./images/part_4_1.nerf_materials_highres.gif
+
+step1. In ./configs/nerf_materials_highres.yaml, set output_gif_file: ./images/part_4_1.nerf_materials_highres.use_views.gif
+step2. In ./configs/nerf_materials_highres.yaml, set checkpoint_path: ./checkpoints.q4_1.nerf_materials_highres.use_views
+step3. In ./configs/nerf_materials_highres.yaml, set use_views: True
+step4. Run: python volume_rendering_main.py --config-name=nerf_materials_highres
+step5. Output: ./images/part_4_1.nerf_materials_highres.use_views.gif
+
+#Question 4.2
+#For Materials_Highres Scene:
+step1. In ./configs/nerf_materials_highres.yaml, set output_gif_file: ./images/part_4_2.nerf_materials_highres.use_views.gif
+step2. In ./configs/nerf_materials_highres.yaml, set checkpoint_path: ./checkpoints.q4_2.nerf_materials_highres.use_views
+step3. In ./configs/nerf_materials_highres.yaml, set use_views: True
+step4. In ./configs/nerf_materials_highres.yaml, set sampler.type: stratified
+step5. In ./configs/nerf_materials_highres.yaml, set sampler.use_fine_sampling: False
+step6. In ./configs/nerf_materials_highres.yaml, set num_epochs: 261
+step7. Run: python volume_rendering_main.py --config-name=nerf_materials_highres
+step8. Output: ./images/part_4_2.nerf_materials_highres.use_views.gif
+
+step1. In ./configs/nerf_materials_highres.yaml, set output_gif_file: ./images/part_4_2.nerf_materials_highres.use_views.use_coarse_fine.gif
+step2. In ./configs/nerf_materials_highres.yaml, set checkpoint_path: ./checkpoints.q4_2.nerf_materials_highres.use_views.use_coarse_fine
+step3. In ./configs/nerf_materials_highres.yaml, set use_views: True
+step4. In ./configs/nerf_materials_highres.yaml, set sampler.type: coarse_fine
+step5. In ./configs/nerf_materials_highres.yaml, set sampler.use_fine_sampling: True
+step6. In ./configs/nerf_materials_highres.yaml, set num_epochs: 201
+step7. Run: python volume_rendering_main.py --config-name=nerf_materials_highres
+step8. Output: ./images/part_4_2.nerf_materials_highres.use_views.use_coarse_fine.gif
+
+#Question 5
+# mkdir images (uncomment when running for the first time)
+python -m surface_rendering_main --config-name=torus_surface
+
+The output is ./images/part_5.gif.
+
+#Question 6
+python -m surface_rendering_main --config-name=points_surface
+
+The output is ./images/part_6_input.gif and ./images/part_6.gif.
+
+#Question 7
+Best Result:
+step1. In ./configs/volsdf_surface.yaml, set alpha: 15, beta: 0.05, and  checkpoint_path: ./volsdf_checkpoint_alpha15_beta0.05
+step2. Run: python -m surface_rendering_main --config-name=volsdf_surface
+step3. The output is ./images/part_7_alpha15_beta0.05.gif and ./images/part_7_geometry_alpha15_beta0.05.gif
+
+Hyperparameter tuning among alpha: [0.1, 1, 5, 15, 50, 100] and beta=0.05:
+step1. In ./configs/volsdf_surface.yaml, set alpha to 0.1, beta: 0.05, and  checkpoint_path: ./volsdf_checkpoint_alpha0.1_beta0.05
+step2. Run: python -m surface_rendering_main --config-name=volsdf_surface
+step3. The output is ./images/part_7_alpha0.1_beta0.05.gif and ./images/part_7_geometry_alpha0.1_beta0.05.gif
+step4. Repeat to step1 with different alpha value, $alpha_value, among [1, 5, 15, 50, 100] with beta keeping 0.05, run the command in step2, and find the output in ./images/part_7_alpha{$alpha_value}_beta_0.05.gif and ./images/part_7_geometry_alpha{$alpha_value}_beta0.05.gif
+
+Hyperparameter tuning among beta: [0.025, 0.05, 0.1, 0.2, 0.5] and alpha=15:
+step1. In ./configs/volsdf_surface.yaml, set alpha to 15, beta: 0.025, and  checkpoint_path: ./volsdf_checkpoint_alpha15_beta0.025
+step2. Run: python -m surface_rendering_main --config-name=volsdf_surface
+step3. The output is ./images/part_7_alpha15_beta0.025.gif and ./images/part_7_geometry_alpha15_beta0.025.gif
+step4. Repeat to step1 with different beta value, $beta_value, among [0.05, 0.1, 0.2, 0.5] with alpha keeping 15, run the command in step2, and find the output in ./images/part_7_alph15_beta{$beta_value}.gif and ./images/part_7_geometry_alpha15_beta{$beta_value}.gif
 
 
 ##  Setup

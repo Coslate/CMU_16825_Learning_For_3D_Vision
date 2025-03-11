@@ -36,6 +36,7 @@ from dataset import (
 )
 
 from render_functions import *
+import torch.nn.functional as F
 
 
 # Model class containing:
@@ -77,7 +78,7 @@ class Model(torch.nn.Module):
             self.sampler,
             self.implicit_fn,
             ray_bundle
-        )
+       )
 
 
 def render_images(
@@ -231,15 +232,15 @@ def train(
             camera = camera.cuda()
 
             # Sample rays
-            xy_grid = get_random_pixels_from_image(cfg.training.batch_size, image_size, camera) # TODO (Q2.1): implement in ray_utils.py
-            ray_bundle = get_rays_from_pixels(xy_grid, image_size, camera)
-            rgb_gt = sample_images_at_xy(image, xy_grid)
+            xy_grid = get_random_pixels_from_image(cfg.training.batch_size, image_size, camera).cuda() # TODO (Q2.1): implement in ray_utils.py #(n_pixels=batch_size, 2)
+            ray_bundle = get_rays_from_pixels(xy_grid, image_size, camera) #(n_pixels=batch_size, 3)
+            rgb_gt = sample_images_at_xy(image, xy_grid) #(batch_size, C)
 
             # Run model forward
             out = model(ray_bundle)
 
             # TODO (Q2.2): Calculate loss
-            loss = None
+            loss = F.mse_loss(out['feature'], rgb_gt)
 
             # Backprop
             optimizer.zero_grad()
@@ -322,6 +323,7 @@ def train_nerf(
 ):
     # Create model
     model, optimizer, lr_scheduler, start_epoch, checkpoint_path = create_model(cfg)
+    alpha_prop = 0.8
 
     # Load the training/validation data.
     train_dataset, val_dataset, _ = get_nerf_datasets(
@@ -349,7 +351,7 @@ def train_nerf(
             # Sample rays
             xy_grid = get_random_pixels_from_image(
                 cfg.training.batch_size, cfg.data.image_size, camera
-            )
+            ).cuda()
             ray_bundle = get_rays_from_pixels(
                 xy_grid, cfg.data.image_size, camera
             )
@@ -359,7 +361,23 @@ def train_nerf(
             out = model(ray_bundle)
 
             # TODO (Q3.1): Calculate loss
-            loss = None
+            if cfg.sampler.get("use_fine_sampling", False):
+                if epoch >= 100:  # Start incorporating fine loss after 100 epochs
+                    alpha_prop = max(0.9 - ((epoch - 100) / (cfg.training.num_epochs - 100)), 0.5)  # Decrease gradually
+                    loss_coarse = F.mse_loss(out['feature_coarse'], rgb_gt)
+                    loss_fine = F.mse_loss(out['feature_fine'], rgb_gt)
+
+                    # Ensure fine sampling is stable
+                    if torch.isnan(loss_fine).any():
+                        print(f"Warning: NaN in fine loss at epoch {epoch}, skipping fine loss")
+                        loss = loss_coarse  # Fallback to coarse-only loss
+                    else:
+                        loss = alpha_prop * loss_coarse + (1 - alpha_prop) * loss_fine
+                else:
+                    loss = F.mse_loss(out['feature_coarse'], rgb_gt)  # Only coarse loss before epoch 300
+            else:
+                loss = F.mse_loss(out['feature'], rgb_gt)  # For single-stage sampling
+
 
             # Take the training step.
             optimizer.zero_grad()
@@ -398,8 +416,8 @@ def train_nerf(
                     model, create_surround_cameras(4.0, n_poses=20, up=(0.0, 0.0, 1.0), focal_length=2.0),
                     cfg.data.image_size, file_prefix='nerf'
                 )
-                imageio.mimsave('images/part_3.gif', [np.uint8(im * 255) for im in test_images], loop=0)
 
+                imageio.mimsave(f'{cfg.output_gif_file}', [np.uint8(im * 255) for im in test_images], loop=0)
 
 @hydra.main(config_path='./configs', config_name='sphere')
 def main(cfg: DictConfig):
@@ -414,5 +432,9 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
+    torch.cuda.empty_cache()
+    torch.cuda.memory_allocated()    
+    print(torch.cuda.device_count())  # Should print 2 (for GPUs 2,3)
+    print(torch.cuda.get_device_name(0))  # Should show GPU 2
     main()
 
