@@ -22,7 +22,7 @@ implicit_function:
   type: sdf_surface
 
   sdf:
-    type: torus # For Q5
+    type: scene #For Q8.1
 
     center:
       val: [0.0, 0.0, 0.0]
@@ -30,6 +30,10 @@ implicit_function:
 
     radii:
       val: [1.0, 0.25]
+      opt: False
+
+    radius:
+      val: 0.5
       opt: False
 
   feature:

@@ -148,7 +148,10 @@ def render(
     all_images = render_images(
         model, cameras, cfg.data.image_size
     )
-    imageio.mimsave('images/part_5.gif', [np.uint8(im * 255) for im in all_images],loop=0)
+    if cfg.implicit_function.sdf.type != 'scene':
+        imageio.mimsave('images/part_5.gif', [np.uint8(im * 255) for im in all_images],loop=0)
+    else:
+        imageio.mimsave('images/part_8_1.gif', [np.uint8(im * 255) for im in all_images],loop=0)
 
 
 def create_model(cfg):
@@ -319,9 +322,11 @@ def train_images(
     model, optimizer, lr_scheduler, start_epoch, checkpoint_path = create_model(cfg)
 
     # Load the training/validation data.
+    few_views    = cfg.get("few_views", 0)
     train_dataset, val_dataset, _ = get_nerf_datasets(
         dataset_name=cfg.data.dataset_name,
         image_size=[cfg.data.image_size[1], cfg.data.image_size[0]],
+        few_views = few_views
     )
 
     train_dataloader = torch.utils.data.DataLoader(
@@ -408,9 +413,15 @@ def train_images(
             )
 
             if cfg.renderer.get("use_verbose_name", False):
-                imageio.mimsave(f'images/part_7_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                if few_views == 0:
+                    imageio.mimsave(f'images/part_7_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                else:
+                    imageio.mimsave(f'images/part_7_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}_few_views{few_views}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
             else:
-                imageio.mimsave(f'images/part_7.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                if few_views == 0:
+                    imageio.mimsave(f'images/part_7.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                else:
+                    imageio.mimsave(f'images/part_7_few_views{few_views}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
 
             try:
                 test_images = render_geometry(
@@ -418,9 +429,18 @@ def train_images(
                     cfg.data.image_size, file_prefix='volsdf_geometry'
                 )
                 if cfg.renderer.get("use_verbose_name", False):
-                    imageio.mimsave(f'images/part_7_geometry_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+
+                    if few_views == 0:
+                        imageio.mimsave(f'images/part_7_geometry_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                    else:
+                        imageio.mimsave(f'images/part_7_geometry_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}_few_views{few_views}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
                 else:
-                    imageio.mimsave(f'images/part_7_geometry.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+
+                    if few_views == 0:
+                        imageio.mimsave(f'images/part_7_geometry.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                    else:
+                        imageio.mimsave(f'images/part_7_geometry_few_views{few_views}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+
             except Exception as e:
                 print("Empty mesh")
                 pass

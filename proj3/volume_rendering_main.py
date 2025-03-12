@@ -326,9 +326,11 @@ def train_nerf(
     alpha_prop = 0.8
 
     # Load the training/validation data.
+    few_views    = cfg.get("few_views", 0)
     train_dataset, val_dataset, _ = get_nerf_datasets(
         dataset_name=cfg.data.dataset_name,
         image_size=[cfg.data.image_size[1], cfg.data.image_size[0]],
+        few_views = few_views
     )
 
     train_dataloader = torch.utils.data.DataLoader(

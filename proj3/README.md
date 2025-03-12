@@ -128,6 +128,25 @@ step2. Run: python -m surface_rendering_main --config-name=volsdf_surface
 step3. The output is ./images/part_7_alpha15_beta0.025.gif and ./images/part_7_geometry_alpha15_beta0.025.gif
 step4. Repeat to step1 with different beta value, $beta_value, among [0.05, 0.1, 0.2, 0.5] with alpha keeping 15, run the command in step2, and find the output in ./images/part_7_alph15_beta{$beta_value}.gif and ./images/part_7_geometry_alpha15_beta{$beta_value}.gif
 
+#Question 8.1
+python -m surface_rendering_main --config-name=large_scene_surface
+
+The output is ./images/part_8_1.gif
+
+#Question 8.2
+#VolSDF:
+step1. In ./configs/volsdf_surface.yaml, set few_views: 20 or 10 or 7.
+step2. In ./configs/volsdf_surface.yaml, set checkpoint_path: ./volsdf_checkpoint_alpha15_beta0.05_few_views{$few_views}, where {$few_views} = 20 or 10 or 7.
+step3. Run: python -m surface_rendering_main --config-name=volsdf_surface
+step4. The output is ./images/part_7_alpha15_beta0.005_few_views{$few_views}.gif and ./images/part_7_geometry_alpha15_beta0.05_few_views{$few_views}.gif, where {$few_views} = 20 or 10 or 7.
+
+#NeRF:
+step1. In ./configs/nerf_lego.yaml, set few_views: 20 or 10 or 7.
+step2. In ./configs/nerf_lego.yaml, set output_gif_file: ./images/part_3.nerf_lego_few_views{$few_views}.gif, where {$few_views} is 20 or 10 or 7.
+step3. In ./configs/nerf_lego.yaml, set checkpoint_path: ./checkpoints.q3.nerf_lego_few_views{$few_views}, where {$few_views} is 20 or 10 or 7.
+step4. In ./configs/nerf_lego.yaml, set use_views: False
+step5. Run: python volume_rendering_main.py --config-name=nerf_lego
+step6. Output: ./images/part_3.nerf_lego_few_views{$few_views}.gif
 
 ##  Setup
 

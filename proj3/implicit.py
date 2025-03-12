@@ -7,6 +7,30 @@ from ray_utils import RayBundle
 
 
 # Sphere SDF class
+class SceneSphereSDF(torch.nn.Module):
+    def __init__(
+        self,
+        center_pt,
+        cfg
+    ):
+        super().__init__()
+
+        self.radius = torch.nn.Parameter(
+            torch.tensor(cfg.radius.val).float(), requires_grad=cfg.radius.opt
+        )
+        self.center = torch.nn.Parameter(
+            torch.tensor(center_pt).float().unsqueeze(0), requires_grad=cfg.center.opt
+        )
+
+    def forward(self, points):
+        points = points.view(-1, 3)
+
+        return torch.linalg.norm(
+            points - self.center,
+            dim=-1,
+            keepdim=True
+        ) - self.radius
+
 class SphereSDF(torch.nn.Module):
     def __init__(
         self,
@@ -84,7 +108,27 @@ class TorusSDF(torch.nn.Module):
         )
         return (torch.linalg.norm(q, dim=-1) - self.radii[..., 1]).unsqueeze(-1)
 
+class SceneSDF(torch.nn.Module):
+    def __init__(self, cfg):
+        super().__init__()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # Detect GPU
+        self.primitives = [
+            SceneSphereSDF(torch.tensor([x, y, z], device=self.device), cfg)
+            for x in range(-3, 3, 2)
+            for y in range(-3, 3, 2)
+            for z in range(-3, 3, 2)
+        ]  # 27 spheres in a grid
+        
+        # Compute Scene Center as the mean of all sphere centers
+        centers = torch.stack([primitive.center for primitive in self.primitives], dim=0)
+        self.center = torch.mean(centers, dim=0)  # (1, 3)        
+
+    def forward(self, points):
+        sdf_values = [primitive(points) for primitive in self.primitives]
+        return torch.min(torch.stack(sdf_values), dim=0)[0]  # Take minimum SDF value        
+
 sdf_dict = {
+    'scene': SceneSDF,
     'sphere': SphereSDF,
     'box': BoxSDF,
     'torus': TorusSDF,
@@ -465,7 +509,7 @@ class NeuralSurface(torch.nn.Module):
             if isinstance(m, nn.Linear):
                 nn.init.xavier_uniform_(m.weight)  # Xavier Uniform Initialization
                 if m.bias is not None:
-                    nn.init.zeros_(m.bias)  # Zero Bias Initialization         
+                    nn.init.zeros_(m.bias)  # Zero Bias Initialization
 
     def get_distance(
         self,
