@@ -301,6 +301,21 @@ def sdf_to_density(signed_distance, alpha, beta):
     density = alpha * psi_beta  # Apply scaling
     return density    
 
+def sdf_to_density_neus(sdf, s):
+    """
+    Convert SDF to density using NeuS's logistic density function.
+
+    Args:
+        sdf (torch.Tensor): Signed distance function values.
+        s (float): Trainable sharpness parameter.
+
+    Returns:
+        torch.Tensor: Converted volume density.
+    """
+    exp_sdf = torch.exp(-s * sdf)
+    density = (s * exp_sdf) / ((1 + exp_sdf) ** 2)
+    return density
+
 class VolumeSDFRenderer(VolumeRenderer):
     def __init__(
         self,
@@ -336,7 +351,11 @@ class VolumeSDFRenderer(VolumeRenderer):
 
             # Call implicit function with sample points
             distance, color = implicit_fn.get_distance_color(cur_ray_bundle.sample_points)
-            density = sdf_to_density(distance, self.alpha, self.beta)# TODO (Q7): convert SDF to density
+            # Q8.3
+            if self.cfg.get("neus_sdf", False):
+                density = sdf_to_density_neus(distance, implicit_fn.s)
+            else:
+                density = sdf_to_density(distance, self.alpha, self.beta)# TODO (Q7): convert SDF to density
 
             # Compute length of each ray segment
             depth_values = cur_ray_bundle.sample_lengths[..., 0]

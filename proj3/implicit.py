@@ -118,7 +118,7 @@ class SceneSDF(torch.nn.Module):
             for y in range(-3, 3, 2)
             for z in range(-3, 3, 2)
         ]  # 27 spheres in a grid
-        
+
         # Compute Scene Center as the mean of all sphere centers
         centers = torch.stack([primitive.center for primitive in self.primitives], dim=0)
         self.center = torch.mean(centers, dim=0)  # (1, 3)        
@@ -459,6 +459,9 @@ class NeuralSurface(torch.nn.Module):
         cfg,
     ):
         super().__init__()
+        #Q8.3
+        self.s = torch.nn.Parameter(torch.tensor(40.0))  # Trainable sharpness for NeuS SDF to Density function: logistic density distribution
+
         # TODO (Q6): Implement Neural Surface MLP to output per-point SDF
         self.n_layers_distance = cfg.get("n_layers_distance", 6)  # Use 6 layers (default)
         self.n_layers_color = cfg.get("n_layers_color", 3)  # Use 6 layers (default)

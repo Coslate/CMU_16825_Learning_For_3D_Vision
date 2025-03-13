@@ -414,14 +414,26 @@ def train_images(
 
             if cfg.renderer.get("use_verbose_name", False):
                 if few_views == 0:
-                    imageio.mimsave(f'images/part_7_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                    if cfg.renderer.get("neus_sdf", False):
+                        imageio.mimsave(f'images/part_7_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}_neus_sdf.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                    else:
+                        imageio.mimsave(f'images/part_7_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
                 else:
-                    imageio.mimsave(f'images/part_7_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}_few_views{few_views}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                    if cfg.renderer.get("neus_sdf", False):
+                        imageio.mimsave(f'images/part_7_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}_few_views{few_views}_neus_sdf.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                    else:
+                        imageio.mimsave(f'images/part_7_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}_few_views{few_views}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
             else:
                 if few_views == 0:
-                    imageio.mimsave(f'images/part_7.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                    if cfg.renderer.get("neus_sdf", False):
+                        imageio.mimsave(f'images/part_7_neus_sdf.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                    else:
+                        imageio.mimsave(f'images/part_7.gif', [np.uint8(im * 255) for im in test_images], loop=0)
                 else:
-                    imageio.mimsave(f'images/part_7_few_views{few_views}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                    if cfg.renderer.get("neus_sdf", False):
+                        imageio.mimsave(f'images/part_7_few_views{few_views}_neus_sdf.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                    else:
+                        imageio.mimsave(f'images/part_7_few_views{few_views}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
 
             try:
                 test_images = render_geometry(
@@ -431,15 +443,27 @@ def train_images(
                 if cfg.renderer.get("use_verbose_name", False):
 
                     if few_views == 0:
-                        imageio.mimsave(f'images/part_7_geometry_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                        if cfg.renderer.get("neus_sdf", False):
+                            imageio.mimsave(f'images/part_7_geometry_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}_neus_sdf.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                        else:
+                            imageio.mimsave(f'images/part_7_geometry_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
                     else:
-                        imageio.mimsave(f'images/part_7_geometry_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}_few_views{few_views}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                        if cfg.renderer.get("neus_sdf", False):
+                            imageio.mimsave(f'images/part_7_geometry_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}_few_views{few_views}_neus_sdf.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                        else:
+                            imageio.mimsave(f'images/part_7_geometry_alpha{cfg.renderer.alpha}_beta{cfg.renderer.beta}_few_views{few_views}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
                 else:
 
                     if few_views == 0:
-                        imageio.mimsave(f'images/part_7_geometry.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                        if cfg.renderer.get("neus_sdf", False):
+                            imageio.mimsave(f'images/part_7_geometry_neus_sdf.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                        else:
+                            imageio.mimsave(f'images/part_7_geometry.gif', [np.uint8(im * 255) for im in test_images], loop=0)
                     else:
-                        imageio.mimsave(f'images/part_7_geometry_few_views{few_views}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                        if cfg.renderer.get("neus_sdf", False):
+                            imageio.mimsave(f'images/part_7_geometry_few_views{few_views}_neus_sdf.gif', [np.uint8(im * 255) for im in test_images], loop=0)
+                        else:
+                            imageio.mimsave(f'images/part_7_geometry_few_views{few_views}.gif', [np.uint8(im * 255) for im in test_images], loop=0)
 
             except Exception as e:
                 print("Empty mesh")

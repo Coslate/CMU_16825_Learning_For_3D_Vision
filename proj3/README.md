@@ -135,18 +135,24 @@ The output is ./images/part_8_1.gif
 
 #Question 8.2
 #VolSDF:
-step1. In ./configs/volsdf_surface.yaml, set few_views: 20 or 10 or 7.
-step2. In ./configs/volsdf_surface.yaml, set checkpoint_path: ./volsdf_checkpoint_alpha15_beta0.05_few_views{$few_views}, where {$few_views} = 20 or 10 or 7.
+step1. In ./configs/volsdf_surface.yaml, set few_views: 20 or 10 or 7 or 5.
+step2. In ./configs/volsdf_surface.yaml, set checkpoint_path: ./volsdf_checkpoint_alpha15_beta0.05_few_views{$few_views}, where {$few_views} = 20 or 10 or 7 or 5.
 step3. Run: python -m surface_rendering_main --config-name=volsdf_surface
-step4. The output is ./images/part_7_alpha15_beta0.005_few_views{$few_views}.gif and ./images/part_7_geometry_alpha15_beta0.05_few_views{$few_views}.gif, where {$few_views} = 20 or 10 or 7.
+step4. The output is ./images/part_7_alpha15_beta0.05_few_views{$few_views}.gif and ./images/part_7_geometry_alpha15_beta0.05_few_views{$few_views}.gif, where {$few_views} = 20 or 10 or 7 or 5.
 
 #NeRF:
-step1. In ./configs/nerf_lego.yaml, set few_views: 20 or 10 or 7.
-step2. In ./configs/nerf_lego.yaml, set output_gif_file: ./images/part_3.nerf_lego_few_views{$few_views}.gif, where {$few_views} is 20 or 10 or 7.
-step3. In ./configs/nerf_lego.yaml, set checkpoint_path: ./checkpoints.q3.nerf_lego_few_views{$few_views}, where {$few_views} is 20 or 10 or 7.
+step1. In ./configs/nerf_lego.yaml, set few_views: 20 or 10 or 7 or 5.
+step2. In ./configs/nerf_lego.yaml, set output_gif_file: ./images/part_3.nerf_lego_few_views{$few_views}.gif, where {$few_views} is 20 or 10 or 7 or 5.
+step3. In ./configs/nerf_lego.yaml, set checkpoint_path: ./checkpoints.q3.nerf_lego_few_views{$few_views}, where {$few_views} is 20 or 10 or 7 or 5.
 step4. In ./configs/nerf_lego.yaml, set use_views: False
 step5. Run: python volume_rendering_main.py --config-name=nerf_lego
 step6. Output: ./images/part_3.nerf_lego_few_views{$few_views}.gif
+
+#Question 8.3
+step1. In ./configs/volsdf_surface.yaml, set neus_sdf: True
+step2. In ./configs/volsdf_surface.yaml, set checkpoint_path: ./volsdf_checkpoint_alpha15_beta0.05_neus_sdf
+step3. Run: python -m surface_rendering_main --config-name=volsdf_surface
+step4. The output is ./images/part_7_alpha15_beta0.05_neus_sdf.gif and ./images/part_7_geometry_alpha15_beta0.05_neus_sdf.gif
 
 ##  Setup
 
