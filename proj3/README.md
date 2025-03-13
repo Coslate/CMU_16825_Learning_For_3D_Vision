@@ -70,14 +70,16 @@ step5. Output: ./images/part_4_1.nerf_materials.use_views.gif
 step1. In ./configs/nerf_materials_highres.yaml, set output_gif_file: ./images/part_4_1.nerf_materials_highres.gif
 step2. In ./configs/nerf_materials_highres.yaml, set checkpoint_path: ./checkpoints.q4_1.nerf_materials_highres
 step3. In ./configs/nerf_materials_highres.yaml, set use_views: False
-step4. Run: python volume_rendering_main.py --config-name=nerf_materials_highres
-step5. Output: ./images/part_4_1.nerf_materials_highres.gif
+step4. In ./configs/nerf_materials_highres.yaml, set num_epochs: 261
+step5. Run: python volume_rendering_main.py --config-name=nerf_materials_highres
+step6. Output: ./images/part_4_1.nerf_materials_highres.gif
 
 step1. In ./configs/nerf_materials_highres.yaml, set output_gif_file: ./images/part_4_1.nerf_materials_highres.use_views.gif
 step2. In ./configs/nerf_materials_highres.yaml, set checkpoint_path: ./checkpoints.q4_1.nerf_materials_highres.use_views
 step3. In ./configs/nerf_materials_highres.yaml, set use_views: True
-step4. Run: python volume_rendering_main.py --config-name=nerf_materials_highres
-step5. Output: ./images/part_4_1.nerf_materials_highres.use_views.gif
+step4. In ./configs/nerf_materials_highres.yaml, set num_epochs: 261
+step5. Run: python volume_rendering_main.py --config-name=nerf_materials_highres
+step6. Output: ./images/part_4_1.nerf_materials_highres.use_views.gif
 
 #Question 4.2
 #For Materials_Highres Scene:
@@ -150,9 +152,10 @@ step6. Output: ./images/part_3.nerf_lego_few_views{$few_views}.gif
 
 #Question 8.3
 step1. In ./configs/volsdf_surface.yaml, set neus_sdf: True
-step2. In ./configs/volsdf_surface.yaml, set checkpoint_path: ./volsdf_checkpoint_alpha15_beta0.05_neus_sdf
-step3. Run: python -m surface_rendering_main --config-name=volsdf_surface
-step4. The output is ./images/part_7_alpha15_beta0.05_neus_sdf.gif and ./images/part_7_geometry_alpha15_beta0.05_neus_sdf.gif
+step2. In ./configs/volsdf_surface.yaml, set neus_s_trainable: True
+step3. In ./configs/volsdf_surface.yaml, set checkpoint_path: ./volsdf_checkpoint_alpha15_beta0.05_neus_sdf
+step4. Run: python -m surface_rendering_main --config-name=volsdf_surface
+step5. The output is ./images/part_7_alpha15_beta0.05_neus_sdf.gif and ./images/part_7_geometry_alpha15_beta0.05_neus_sdf.gif
 
 ##  Setup
 

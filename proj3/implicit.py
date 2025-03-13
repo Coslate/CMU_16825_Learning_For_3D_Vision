@@ -460,7 +460,8 @@ class NeuralSurface(torch.nn.Module):
     ):
         super().__init__()
         #Q8.3
-        self.s = torch.nn.Parameter(torch.tensor(40.0))  # Trainable sharpness for NeuS SDF to Density function: logistic density distribution
+        if cfg.get("neus_s_trainable", False):
+            self.s = torch.nn.Parameter(torch.tensor(40.0))  # Trainable sharpness for NeuS SDF to Density function: logistic density distribution
 
         # TODO (Q6): Implement Neural Surface MLP to output per-point SDF
         self.n_layers_distance = cfg.get("n_layers_distance", 6)  # Use 6 layers (default)
