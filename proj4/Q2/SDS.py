@@ -148,22 +148,35 @@ class SDS:
             device=self.device,
         )
 
-        # predict the noise residual with unet, NO grad!
+        # Add noise to the latent
+        B = latents.shape[0]
+        latents = latents.float()
+        noise = torch.randn_like(latents)
+        noisy_latents = self.scheduler.add_noise(latents, noise, t)
+
+
+        # Predict the noise residual with unet, NO grad!
         with torch.no_grad():
             ### YOUR CODE HERE ###
- 
+            noise_pred_cond = self.unet(noisy_latents, t, encoder_hidden_states=text_embeddings).sample
 
             if text_embeddings_uncond is not None and guidance_scale != 1:
-                ### YOUR CODE HERE ###
-                pass
+                noise_pred_uncond = self.unet(noisy_latents, t, encoder_hidden_states=text_embeddings_uncond).sample
+                # Bias the gradient to listen to conditioning more
+                # SLIDE VERSION: eps = eps_c + λ(eps_c - eps_u)
+                noise_pred = noise_pred_cond + guidance_scale * (noise_pred_cond - noise_pred_uncond)
+            else:
+                noise_pred = noise_pred_cond
  
 
-
-        # Compute SDS loss
-        w = 1 - self.alphas[t]
+        # Compute gradient for SDS (∇ = -w_t(ε̂ - ε))
+        alpha_t = self.alphas[t].reshape(-1, 1, 1, 1)  # Shape (B, 1, 1, 1)
+        w_t = 1 - alpha_t
+        grad = grad_scale * (-w_t * (noise_pred - noise))  # SDS gradient
+        grad = torch.nan_to_num(grad)  # Optional scaling and NaN-safe
         ### YOUR CODE HERE ###
 
-
-        loss = 
-
+        # Compute targets and loss
+        targets = (latents + grad).detach()
+        loss = F.mse_loss(latents, targets, reduction='sum') / B
         return loss

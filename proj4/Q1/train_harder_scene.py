@@ -13,14 +13,56 @@ from data_utils_harder_scene import get_nerf_datasets, trivial_collate
 
 from pytorch3d.renderer import PerspectiveCameras
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
+#from pytorch_msssim import ssim as ssim_fn
+
+class UncertaintyWeightedLoss(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.log_sigma_l1 = torch.nn.Parameter(torch.tensor(0.2))
+        self.log_sigma_ssim = torch.nn.Parameter(torch.tensor(0.2))
+
+    def forward(self, pred_img, gt_img):
+        l1_loss = torch.nn.functional.l1_loss(pred_img, gt_img)
+        '''
+        ssim_loss = 1 - ssim_fn(
+            pred_img.permute(2, 0, 1).unsqueeze(0),  #(C, H, W) -> (1, C, H, W)
+            gt_img.permute(2, 0, 1).unsqueeze(0), #(1, C, H, W)
+            data_range=1.0,
+            size_average=True
+        )
+        '''
+        ssim_loss = 1 - structural_similarity(
+            pred_img.detach().cpu().numpy(),
+            gt_img.detach().cpu().numpy(),
+            channel_axis=-1,
+            data_range=1.0
+        )
+        #ssim_loss = (ssim - ssim.min()) / (ssim.max() - ssim.min() + 1e-6)  # Avoid division by zero
+
+        # Highlight: Clamp log_sigma to prevent extreme values
+        log_sigma_l1 = torch.clamp(self.log_sigma_l1, min=-3.0, max=3.0)
+        log_sigma_ssim = torch.clamp(self.log_sigma_ssim, min=-3.0, max=3.0)
+
+        total_loss = (
+            0.5 * torch.exp(-2 * log_sigma_l1) * l1_loss + log_sigma_l1 +
+            0.5 * torch.exp(-2 * log_sigma_ssim) * ssim_loss + log_sigma_ssim
+        )
+        return total_loss
+
 
 def make_trainable(gaussians):
 
     ### YOUR CODE HERE ###
     # HINT: You can access and modify parameters from gaussians
-    pass
+    gaussians.means.requires_grad = True
+    gaussians.pre_act_scales.requires_grad = True
+    gaussians.pre_act_opacities.requires_grad = True
+    gaussians.colours.requires_grad = True
 
-def setup_optimizer(gaussians):
+    if not gaussians.is_isotropic:
+        gaussians.pre_act_quats.requires_grad = True    
+
+def setup_optimizer(gaussians, args, criterion=None):
 
     gaussians.check_if_trainable()
 
@@ -30,16 +72,44 @@ def setup_optimizer(gaussians):
     # HINT: Consider reducing the learning rates for parameters that seem to vary too
     # fast with the default settings.
     # HINT: Consider setting different learning rates for different sets of parameters.
+    '''
     parameters = [
         {'params': [gaussians.pre_act_opacities], 'lr': 0.05, "name": "opacities"},
-        {'params': [gaussians.pre_act_scales], 'lr': 0.05, "name": "scales"},
-        {'params': [gaussians.colours], 'lr': 0.05, "name": "colours"},
-        {'params': [gaussians.means], 'lr': 0.05, "name": "means"},
+        {'params': [gaussians.pre_act_scales], 'lr': 0.02, "name": "scales"},
+        {'params': [gaussians.colours], 'lr': 0.005, "name": "colours"},
+        {'params': [gaussians.means], 'lr': 0.0016, "name": "means"},
     ]
-    optimizer = torch.optim.Adam(parameters, lr=0.0, eps=1e-15)
-    optimizer = None
+    '''
+    parameters = [
+        {'params': [gaussians.pre_act_opacities], 'lr': 0.1, "name": "opacities"},
+        {'params': [gaussians.pre_act_scales], 'lr': 0.1, "name": "scales"},
+        {'params': [gaussians.colours], 'lr': 0.04, "name": "colours"},
+        {'params': [gaussians.means], 'lr': 0.0140, "name": "means"},
+    ]
 
-    return optimizer
+    # Include quaternions only if anisotropic
+    if not gaussians.is_isotropic:
+        parameters.append({'params': [gaussians.pre_act_quats], 'lr': 0.009, "name": "quats"})
+
+    if criterion is not None:
+        parameters.append({'params': [criterion.log_sigma_l1, criterion.log_sigma_ssim], 'lr': 0.01})
+
+    # Initialize the Adam optimizer with a small epsilon for numerical stability
+    optimizer = torch.optim.Adam(parameters, lr=0.0, eps=1e-15)
+
+    if args.use_sched:
+        # Define a separate scheduler for each parameter group
+        schedulers = {
+            "opacities": torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=1e-6), #change quickly but stable later
+            "scales": torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=5e-6), #adapt quickly but stable later, eta_min is larger because still need update in later training
+            "colours": torch.optim.lr_scheduler.StepLR(optimizer, step_size=2500, gamma=0.5), #shouldn't change aggressively for fine-tuning
+            "means": torch.optim.lr_scheduler.StepLR(optimizer, step_size=4000, gamma=0.3), #should be highly stable
+        }
+        if not gaussians.is_isotropic:
+            schedulers["quats"] = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=1e-5)  # Full-length gradual updates, the slowest update for quats
+        return optimizer, schedulers
+
+    return optimizer, None
 
 def ndc_to_screen_camera(camera, img_size = (128, 128)):
 
@@ -87,17 +157,19 @@ def run_training(args):
 
     # Init gaussians and scene
     gaussians = Gaussians(
-        num_points=10000, init_type="random",
-        device=args.device, isotropic=True
+        num_points=args.init_random_numpoints, init_type="random",
+        device=args.device, isotropic=False
     )
     scene = Scene(gaussians)
 
     # Making gaussians trainable and setting up optimizer
+    criterion = UncertaintyWeightedLoss().to(args.device) if args.use_uncert else None
     make_trainable(gaussians)
-    optimizer = setup_optimizer(gaussians)
+    optimizer, schedulers = setup_optimizer(gaussians, args, criterion)
 
     # Training loop
     viz_frames = []
+    l1 = torch.nn.L1Loss()
     for itr in range(args.num_itrs):
 
         # Fetching data
@@ -117,14 +189,43 @@ def run_training(args):
         # HINT: Set img_size to (128, 128)
         # HINT: Get per_splat from args.gaussians_per_splat
         # HINT: camera is available above
-        pred_img = None
+        pred_img, _, _ = scene.render(
+                            camera,
+                            per_splat=args.gaussians_per_splat,
+                            img_size=(128, 128),
+                            bg_colour=(0.0, 0.0, 0.0)
+                        )
 
         # Compute loss
         ### YOUR CODE HERE ###
-        loss = None
+        if args.use_ssim:
+            # SSIM Loss (optional)
+            lambda_ssim = torch.nn.Parameter(torch.tensor(0.5), requires_grad=True)
+            ssim_loss = 1 - structural_similarity(
+                pred_img.detach().cpu().numpy(),
+                gt_img.detach().cpu().numpy(),
+                channel_axis=-1,
+                data_range=1.0
+            )
+            '''
+            ssim_loss = 1 - ssim_fn(
+                pred_img.permute(2, 0, 1).unsqueeze(0),  #(C, H, W) -> (1, C, H, W)
+                gt_img.permute(2, 0, 1).unsqueeze(0), #(1, C, H, W)
+                data_range=1.0,
+                size_average=True
+            )
+            '''
+            loss = l1(pred_img, gt_img) + lambda_ssim * ssim_loss
+        elif args.use_uncert:
+            loss = criterion(pred_img, gt_img)
+        else:
+            loss = l1(pred_img, gt_img)
 
         loss.backward()
         optimizer.step()
+        if args.use_sched:
+            for key, scheduler in schedulers.items():
+                scheduler.step()
         optimizer.zero_grad()
 
         print(f"[*] Itr: {itr:07d} | Loss: {loss:0.3f}")
@@ -160,7 +261,12 @@ def run_training(args):
             # HINT: Set img_size to (128, 128)
             # HINT: Get per_splat from args.gaussians_per_splat
             # HINT: camera is available above
-            pred_img = None
+            pred_img, _, _ = scene.render(
+                                camera,
+                                per_splat=args.gaussians_per_splat,
+                                img_size=(128, 128),
+                                bg_colour=(0.0, 0.0, 0.0)
+                            )
 
         pred_npy = pred_img.detach().cpu().numpy()
         pred_npy = (np.clip(pred_npy, 0.0, 1.0) * 255.0).astype(np.uint8)
@@ -186,7 +292,11 @@ def run_training(args):
             # HINT: Set img_size to (128, 128)
             # HINT: Get per_splat from args.gaussians_per_splat
             # HINT: camera is available above
-            pred_img = None
+            pred_img, depth, mask = scene.render(camera, 
+                                            per_splat=args.gaussians_per_splat,
+                                            img_size=(128, 128),
+                                            bg_colour=(0.0, 0.0, 0.0)
+                                            )            
 
             gt_npy = gt_img.detach().cpu().numpy()
             pred_npy = pred_img.detach().cpu().numpy()
@@ -231,6 +341,22 @@ def get_args():
     parser.add_argument(
         "--viz_freq", default=20, type=int,
         help="Frequency with which visualization should be performed."
+    )
+    parser.add_argument(
+        "--init_random_numpoints", default=10000, type=int,
+        help="Initially random points for Gaussian if init_type is 'random'."
+    )
+    parser.add_argument(
+        "--use_sched", default=False, type=bool,
+        help="Whether to use scheduler."
+    )
+    parser.add_argument(
+        "--use_ssim", default=False, type=bool,
+        help="Whether to use ssim in loss."
+    )
+    parser.add_argument(
+        "--use_uncert", default=False, type=bool,
+        help="Whether to use uncertainty weighting in loss."
     )
     parser.add_argument("--device", default="cuda", type=str, choices=["cuda", "cpu"])
     args = parser.parse_args()
