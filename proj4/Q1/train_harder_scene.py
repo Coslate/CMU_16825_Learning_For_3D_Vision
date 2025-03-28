@@ -75,9 +75,9 @@ def setup_optimizer(gaussians, args, criterion=None):
     '''
     parameters = [
         {'params': [gaussians.pre_act_opacities], 'lr': 0.05, "name": "opacities"},
-        {'params': [gaussians.pre_act_scales], 'lr': 0.02, "name": "scales"},
-        {'params': [gaussians.colours], 'lr': 0.005, "name": "colours"},
-        {'params': [gaussians.means], 'lr': 0.0016, "name": "means"},
+        {'params': [gaussians.pre_act_scales], 'lr': 0.003, "name": "scales"},
+        {'params': [gaussians.colours], 'lr': 0.0025, "name": "colours"},
+        {'params': [gaussians.means], 'lr': 0.00016, "name": "means"},
     ]
     '''
     parameters = [
@@ -160,6 +160,12 @@ def run_training(args):
         num_points=args.init_random_numpoints, init_type="random",
         device=args.device, isotropic=False
     )
+    '''
+    gaussians = Gaussians(
+        num_points=args.init_random_numpoints, init_type="random",
+        device=args.device, isotropic=True
+    )
+    '''
     scene = Scene(gaussians)
 
     # Making gaussians trainable and setting up optimizer

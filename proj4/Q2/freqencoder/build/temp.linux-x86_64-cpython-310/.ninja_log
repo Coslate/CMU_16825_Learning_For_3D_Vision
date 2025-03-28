@@ -1,3 +1,5 @@
 # ninja log v5
 0	9882	1707064551739982795	/data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/freqencoder/build/temp.linux-x86_64-cpython-310/data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/freqencoder/src/bindings.o	dd1839430168d104
 0	30361	1707064572220307091	/data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/freqencoder/build/temp.linux-x86_64-cpython-310/data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/freqencoder/src/freqencoder.o	8fe69fd0981553de
+4	16854	1742892628515020574	/home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/freqencoder/build/temp.linux-x86_64-cpython-310/home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/freqencoder/src/bindings.o	9644328ec2762deb
+5	44615	1742892656259739920	/home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/freqencoder/build/temp.linux-x86_64-cpython-310/home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/freqencoder/src/freqencoder.o	987993e9563fe00c

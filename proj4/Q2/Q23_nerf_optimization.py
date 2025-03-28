@@ -14,6 +14,52 @@ from optimizer import Adan
 from PIL import Image
 from SDS import SDS
 from utils import prepare_embeddings, seed_everything
+import torch.nn.functional as F
+import math
+
+def get_view_dependent_embedding(prompt, azimuth, sds, embeddings):
+    """
+    Returns a smoothly blended view-dependent text embedding.
+    
+    Args:
+        prompt (str): The original text prompt.
+        azimuth (float or tensor): Azimuth angle in degrees [-180, 180].
+        sds (SDS): SDS object for getting text embeddings.
+        embeddings (dict): Dictionary containing precomputed embeddings for 'front', 'side', 'back', 'default'.
+    
+    Returns:
+        Tensor: Blended text embedding.
+    """
+    # Ensure azimuth is a float and wrap to [0, 360)
+    if isinstance(azimuth, torch.Tensor):
+        az = azimuth.item()
+    else:
+        az = float(azimuth)
+    az = (az + 360) % 360
+    az_rad = math.radians(az)
+
+    # Canonical view directions
+    dir_names = ["front", "side", "back", "side"]
+    dir_centers = [0, 90, 180, 270]  # degrees
+    dir_centers_rad = [math.radians(d) for d in dir_centers]
+
+    # Cosine-based weights
+    weights = []
+    for c in dir_centers_rad:
+        delta = az_rad - c
+        weight = torch.cos(torch.tensor(delta))
+        weights.append(torch.clamp(weight, min=0.0))
+
+    weights = torch.tensor(weights, dtype=torch.float32, device=embeddings["default"].device)
+    if weights.sum() == 0:
+        weights = torch.ones_like(weights) / len(weights)
+    else:
+        weights = weights / weights.sum()
+
+    # Blend the embeddings
+    view_embs = [embeddings[name] for name in dir_names]
+    text_cond = sum(w * e for w, e in zip(weights, view_embs))
+    return text_cond
 
 
 def optimize_nerf(
@@ -29,7 +75,7 @@ def optimize_nerf(
     """
 
     # Step 1. Create text embeddings from prompt
-    embeddings = prepare_embeddings(sds, prompt, neg_prompt, view_dependent=False)
+    embeddings = prepare_embeddings(sds, prompt, neg_prompt, view_dependent=True if args.view_dep_text==1 else False)
 
     # Step 2. Set up NeRF model
     model = NeRFNetwork(args).to(device)
@@ -154,18 +200,40 @@ def optimize_nerf(
             # interpolate text_z
             azimuth = data["azimuth"]  # [-180, 180]
             assert azimuth.shape[0] == 1, "Batch size should be 1"
+            elevation = data.get("elevation", torch.tensor([0.0])).item()            
             text_uncond = embeddings["uncond"]
 
             if not args.view_dep_text:
                 text_cond = embeddings["default"]
             else:
                 ### YOUR CODE HERE ###
-                pass
+                ''''''
+                #if elevation > 60:
+                if False:
+                    view_prompt = f"{prompt}, overhead view"
+                    text_cond = sds.get_text_embeddings([view_prompt])
+                else:
+                    az = azimuth.item()
+                    assert -180 <= az <= 180, f"Azimuth {az} out of expected range [-180, 180]"
 
-  
+                    # Convert to [0, 360)
+                    az = (az + 360) % 360
+                    if (az >= 315 or az < 45):
+                        view_key = "front"
+                    elif 45 <= az < 135:
+                        view_key = "side"
+                    elif 135 <= az < 225:
+                        view_key = "back"
+                    else:
+                        view_key = "side"  # reuse side for both left/right                        
+
+                    #text_cond = embeddings[view_key]
+                    text_cond = get_view_dependent_embedding(prompt, azimuth, sds, embeddings)
+
             ### YOUR CODE HERE ###
-            latents = 
-            loss = 
+            pred_rgb_resized = F.interpolate(pred_rgb, size=(512, 512), mode="bilinear", align_corners=False)
+            latents = sds.encode_imgs(pred_rgb_resized)
+            loss = sds.sds_loss(latents, text_cond, text_uncond, guidance_scale=args.guidance_scale)
 
             # regularizations
             if args.lambda_entropy > 0:
@@ -275,28 +343,49 @@ def optimize_nerf(
             all_preds = np.stack(all_preds, axis=0)
             all_preds_depth = np.stack(all_preds_depth, axis=0)
             # save the video
-            imageio.mimwrite(
-                os.path.join(sds.output_dir, "videos", f"rgb_ep_{epoch}.mp4"),
-                all_preds,
-                fps=25,
-                quality=8,
-                macro_block_size=1,
-            )
-            imageio.mimwrite(
-                os.path.join(sds.output_dir, "videos", f"depth_ep_{epoch}.mp4"),
-                all_preds_depth,
-                fps=25,
-                quality=8,
-                macro_block_size=1,
-            )
+            if args.out_gif:
+                imageio.mimsave(
+                    os.path.join(sds.output_dir, "videos", f"rgb_ep_{epoch}.gif"),
+                    all_preds,
+                    fps=25,  # Typical frame rate for GIFs
+                    loop=0
+                )
+
+                # Save Depth GIF
+                imageio.mimsave(
+                    os.path.join(sds.output_dir, "videos", f"depth_ep_{epoch}.gif"),
+                    all_preds_depth,
+                    fps=25,
+                    loop=0
+                )                
+
+            else:
+                imageio.mimwrite(
+                    os.path.join(sds.output_dir, "videos", f"rgb_ep_{epoch}.mp4"),
+                    all_preds,
+                    fps=25,
+                    quality=8,
+                    macro_block_size=1,
+                    format='ffmpeg',
+                )
+                imageio.mimwrite(
+                    os.path.join(sds.output_dir, "videos", f"depth_ep_{epoch}.mp4"),
+                    all_preds_depth,
+                    fps=25,
+                    quality=8,
+                    macro_block_size=1,
+                    format='ffmpeg',
+                )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--prompt", type=str, default="a hamburger")
+    parser.add_argument("--out_gif", type=bool, default=True, help="True to output GIF, False to output mp4 format.")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output_dir", type=str, default="output")
     parser.add_argument("--loss_scaling", type=int, default=1)
+    parser.add_argument("--guidance_scale", type=int, default=100)
 
     ### YOUR CODE HERE ###
     # You wil need to tune the following parameters to obtain good NeRF results

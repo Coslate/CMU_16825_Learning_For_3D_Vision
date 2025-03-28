@@ -103,7 +103,7 @@ def get_mesh_renderer_soft(image_size=512, lights=None, device=None, sigma=1e-4)
     return renderer
 
 
-def render_360_views(mesh, renderer, device, dist=3, elev=0, output_path=None):
+def render_360_views(mesh, renderer, device, dist=3, elev=0, output_path=None, loop=1):
     images = []
     for azim in range(0, 360, 10):
         R, T = look_at_view_transform(dist, elev, azim)
@@ -121,7 +121,7 @@ def render_360_views(mesh, renderer, device, dist=3, elev=0, output_path=None):
     images = [img_as_ubyte(img) for img in images]
 
     # save a gif of the 360 rotation
-    imageio.mimsave(output_path, images, fps=15)
+    imageio.mimsave(output_path, images, fps=15, loop=loop)
 
 
 from pytorch3d.io import load_obj, load_objs_as_meshes
@@ -142,6 +142,7 @@ def init_mesh(
 # calculate the text embs.
 @torch.no_grad()
 def prepare_embeddings(sds, prompt, neg_prompt="", view_dependent=False):
+    print(f"**** view_dependent = {view_dependent}****")
     # text embeddings (stable-diffusion)
     if isinstance(prompt, str):
         prompt = [prompt]
@@ -153,4 +154,5 @@ def prepare_embeddings(sds, prompt, neg_prompt="", view_dependent=False):
     if view_dependent:
         for d in ["front", "side", "back"]:
             embeddings[d] = sds.get_text_embeddings([f"{prompt}, {d} view"])
+
     return embeddings

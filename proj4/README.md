@@ -11,6 +11,49 @@
   - [PyMCubes](https://github.com/pmneila/PyMCubes)
 
 - Feel free to install other packages if required.
+---
+
+# 0.5. Running Commands for each Task (Question):
+Task 1.1.5: python render.py --out_path ./output
+
+Task 1.2.2: python train.py --num_itrs 3000 --viz_freq 50 --out_path ./output_lr_0.05_0.003_0.0025_0.00016
+
+Task 1.3.1: python render.py --out_path ./output_q1.3.1
+
+Task 1.3.2: 
+(for baseline):
+step1. set everything as Task1.2.2 in train_harder_scene.py
+step2. run: python ./train_harder_scene.py --num_itrs 5000 --viz_freq 100  --out_path ./output_q1.3.2.baseline
+
+(for improved version):
+step1. set as the table in the report of Task 1.3.2, the column of improved version
+step2. run: python ./train_harder_scene.py --num_itrs 5000 --viz_freq 100 --init_random_numpoints 15000 --use_sched True --use_ssim True --out_path ./output_q1.3.2.improved
+
+Task 2.1:
+python ./Q21_image_optimization.py --prompt 'a flying dragon' --sds_guidance 0 --output_dir ./output_asdsguidance0_a_flying_dragon
+python ./Q21_image_optimization.py --prompt 'a flying dragon' --sds_guidance 1 --output_dir ./output_asdsguidance1_a_flying_dragon
+python ./Q21_image_optimization.py --prompt 'a batman' --sds_guidance 0 --output_dir ./output_asdsguidance0_a_batman
+python ./Q21_image_optimization.py --prompt 'a batman' --sds_guidance 1 --output_dir ./output_asdsguidance1_a_batman
+python ./Q21_image_optimization.py --prompt 'a standing corgi dog' --sds_guidance 0 --output_dir ./output_asdsguidance0_a_standing_corgi_dog
+python ./Q21_image_optimization.py --prompt 'a standing corgi dog' --sds_guidance 1 --output_dir ./output_asdsguidance1_a_standing_corgi_dog
+python ./Q21_image_optimization.py --prompt 'a hamburger' --sds_guidance 0 --output_dir ./output_asdsguidance0_a_hamburger
+python ./Q21_image_optimization.py --prompt 'a hamburger' --sds_guidance 1 --output_dir ./output_asdsguidance1_a_hamburger
+
+Task 2.2:
+python ./Q22_mesh_optimization.py --prompt "a grass" --output_dir ./output_q22_a_grass
+python ./Q22_mesh_optimization.py --prompt "a hamburger" --output_dir ./output_q22_a_hamburger
+python ./Q22_mesh_optimization.py --prompt "a spiderman" --output_dir ./output_q22_a_spiderman
+python ./Q22_mesh_optimization.py --prompt "an iphone" --output_dir ./output_q22_an_iphone
+python ./Q22_mesh_optimization.py --prompt "a watermelon" --output_dir ./output_q22_a_watermelon
+
+Task 2.3:
+python ./Q23_nerf_optimization.py  --prompt 'a standing corgi dog' --lambda_entropy 0.01 --lambda_orient 0.1 --latent_iter_ratio 0.2 --view_dep_text 0 --iters 5001 --output_dir ./output_q23_a_standing_corgi_dog_lentropy0.01_lorient0.1_literratio0.2_iters5001_viewdeptext0_gs200_test25 --out_gif True --guidance_scale 200
+python ./Q23_nerf_optimization.py --prompt 'a running monkey' --lambda_entropy 0.1 --lambda_orient 0.1 --latent_iter_ratio 0.2 --view_dep_text 0 --iters 5001 --output_dir ./output_q23_a_running_monkey_lentropy0.1_lorient0.1_literratio0.2_iters5001_viewdeptext0_test26 --out_gif True
+python ./Q23_nerf_optimization.py  --prompt 'a running cat' --lambda_entropy 0.001 --lambda_orient 0.1 --latent_iter_ratio 0.2 --view_dep_text 0 --iters 5001 --output_dir ./output_q23_a_running_cat_lentropy0.001_lorient0.1_literratio0.2_iters5001_viewdeptext0_test21 --out_gif True
+
+Task 2.4.1:
+ python ./Q23_nerf_optimization.py  --prompt 'a standing corgi dog' --lambda_entropy 0.01 --lambda_orient 0.1 --latent_iter_ratio 0.2 --view_dep_text 1 --iters 5001 --output_dir ./output_q23_a_standing_corgi_dog_lentropy0.01_lorient0.1_literratio0.2_iters5001_viewdeptext1_test7 --out_gif True --guidance_scale 700
+python ./Q23_nerf_optimization.py --prompt 'a running monkey' --lambda_entropy 0.1 --lambda_orient 0.1 --latent_iter_ratio 0.2 --view_dep_text 1 --iters 6001 --output_dir ./output_q23_a_running_monkey_lentropy0.1_lorient0.1_literratio0.2_iters6001_viewdeptext1_gs_200_test27 --out_gif True --guidance_scale 200
 
 ---
 

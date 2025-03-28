@@ -69,6 +69,7 @@ def optimize_mesh_texture(
             renderer,
             device=device,
             output_path=osp.join(sds.output_dir, "initial_mesh.gif"),
+            loop=0
         )
 
     # Step 3.2. Initialize the cameras
@@ -81,6 +82,14 @@ def optimize_mesh_texture(
     # create a list of query cameras as the training set
     # Note: to create the dataset, you can either pre-define a list of query cameras as below or randomly sample a camera pose on the fly in the training loop.
     query_cameras = [] # optional
+    num_cameras = 100
+    dist = 3
+    for _ in range(num_cameras):
+        elev = torch.FloatTensor(1).uniform_(-30, 60)
+        azim = torch.FloatTensor(1).uniform_(0, 360)
+        R, T = look_at_view_transform(dist=dist, elev=elev, azim=azim)
+        cam = FoVPerspectiveCameras(R=R, T=T, device=device)
+        query_cameras.append(cam)        
 
     # Step 4. Create optimizer training parameters
     optimizer = torch.optim.AdamW(color_field.parameters(), lr=5e-4, weight_decay=0)
@@ -100,13 +109,20 @@ def optimize_mesh_texture(
 
         # Forward pass
         # Render a randomly sampled camera view to optimize in this iteration
-        rend = 
+        cam = query_cameras[np.random.randint(0, len(query_cameras))]
+        rend = renderer(mesh, cameras=cam, lights=lights) #(B, H, W, C)
+        image = rend[0, ..., :3].permute(2, 0, 1).unsqueeze(0) #(B, C, H, W)
+
         # Encode the rendered image to latents
-        latents = 
+        latents = sds.encode_imgs(image) 
+
         # Compute the loss
-        loss =
-
-
+        loss = sds.sds_loss(latents=latents,
+                            text_embeddings=embeddings['default'],
+                            text_embeddings_uncond=embeddings['uncond'],
+                            guidance_scale=100,
+                            grad_scale=1
+                            )
 
         # Backward pass
         loss.backward()
@@ -134,6 +150,7 @@ def optimize_mesh_texture(
             renderer,
             device=device,
             output_path=osp.join(sds.output_dir, f"final_mesh.gif"),
+            loop=0
         )
 
 

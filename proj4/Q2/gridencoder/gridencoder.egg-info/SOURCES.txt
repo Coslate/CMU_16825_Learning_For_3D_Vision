@@ -1,6 +1,6 @@
 setup.py
-/data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/gridencoder/src/bindings.cpp
-/data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/gridencoder/src/gridencoder.cu
+/home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/gridencoder/src/bindings.cpp
+/home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/gridencoder/src/gridencoder.cu
 gridencoder.egg-info/PKG-INFO
 gridencoder.egg-info/SOURCES.txt
 gridencoder.egg-info/dependency_links.txt

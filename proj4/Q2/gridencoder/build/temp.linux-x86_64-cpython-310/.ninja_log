@@ -1,3 +1,5 @@
 # ninja log v5
 0	10156	1707064585608519082	/data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/gridencoder/build/temp.linux-x86_64-cpython-310/data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/gridencoder/src/bindings.o	cad7ba30cd96aa9a
 0	151401	1707064726842755306	/data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/gridencoder/build/temp.linux-x86_64-cpython-310/data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/gridencoder/src/gridencoder.o	c9bbd31ba1b7d342
+4	19160	1742892758535704514	/home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/gridencoder/build/temp.linux-x86_64-cpython-310/home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/gridencoder/src/bindings.o	5e1dacc506654931
+4	155510	1742892894858322770	/home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/gridencoder/build/temp.linux-x86_64-cpython-310/home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/gridencoder/src/gridencoder.o	aa3997e67a794b9b

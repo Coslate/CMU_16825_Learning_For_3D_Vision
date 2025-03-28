@@ -1,6 +1,6 @@
 setup.py
-/data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/freqencoder/src/bindings.cpp
-/data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/freqencoder/src/freqencoder.cu
+/home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/freqencoder/src/bindings.cpp
+/home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/freqencoder/src/freqencoder.cu
 freqencoder.egg-info/PKG-INFO
 freqencoder.egg-info/SOURCES.txt
 freqencoder.egg-info/dependency_links.txt

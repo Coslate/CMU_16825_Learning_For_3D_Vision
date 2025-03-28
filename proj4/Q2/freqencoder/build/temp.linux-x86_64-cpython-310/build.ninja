@@ -2,10 +2,11 @@ ninja_required_version = 1.3
 cxx = c++
 nvcc = /usr/local/cuda/bin/nvcc
 
-cflags = -pthread -B /home/ruihan/anaconda3/envs/stable-dreamfusion/compiler_compat -Wno-unused-result -Wsign-compare -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/ruihan/anaconda3/envs/stable-dreamfusion/include -fPIC -O2 -isystem /home/ruihan/anaconda3/envs/stable-dreamfusion/include -fPIC -I/home/ruihan/anaconda3/envs/stable-dreamfusion/lib/python3.10/site-packages/torch/include -I/home/ruihan/anaconda3/envs/stable-dreamfusion/lib/python3.10/site-packages/torch/include/torch/csrc/api/include -I/home/ruihan/anaconda3/envs/stable-dreamfusion/lib/python3.10/site-packages/torch/include/TH -I/home/ruihan/anaconda3/envs/stable-dreamfusion/lib/python3.10/site-packages/torch/include/THC -I/usr/local/cuda/include -I/home/ruihan/anaconda3/envs/stable-dreamfusion/include/python3.10 -c
-post_cflags = -O3 -std=c++14 -DTORCH_API_INCLUDE_EXTENSION_H '-DPYBIND11_COMPILER_TYPE="_gcc"' '-DPYBIND11_STDLIB="_libstdcpp"' '-DPYBIND11_BUILD_ABI="_cxxabi1011"' -DTORCH_EXTENSION_NAME=_freqencoder -D_GLIBCXX_USE_CXX11_ABI=0
-cuda_cflags = -I/home/ruihan/anaconda3/envs/stable-dreamfusion/lib/python3.10/site-packages/torch/include -I/home/ruihan/anaconda3/envs/stable-dreamfusion/lib/python3.10/site-packages/torch/include/torch/csrc/api/include -I/home/ruihan/anaconda3/envs/stable-dreamfusion/lib/python3.10/site-packages/torch/include/TH -I/home/ruihan/anaconda3/envs/stable-dreamfusion/lib/python3.10/site-packages/torch/include/THC -I/usr/local/cuda/include -I/home/ruihan/anaconda3/envs/stable-dreamfusion/include/python3.10 -c
-cuda_post_cflags = -D__CUDA_NO_HALF_OPERATORS__ -D__CUDA_NO_HALF_CONVERSIONS__ -D__CUDA_NO_BFLOAT16_CONVERSIONS__ -D__CUDA_NO_HALF2_OPERATORS__ --expt-relaxed-constexpr --compiler-options ''"'"'-fPIC'"'"'' -O3 -std=c++14 -U__CUDA_NO_HALF_OPERATORS__ -U__CUDA_NO_HALF_CONVERSIONS__ -U__CUDA_NO_HALF2_OPERATORS__ -use_fast_math -DTORCH_API_INCLUDE_EXTENSION_H '-DPYBIND11_COMPILER_TYPE="_gcc"' '-DPYBIND11_STDLIB="_libstdcpp"' '-DPYBIND11_BUILD_ABI="_cxxabi1011"' -DTORCH_EXTENSION_NAME=_freqencoder -D_GLIBCXX_USE_CXX11_ABI=0 -gencode=arch=compute_86,code=compute_86 -gencode=arch=compute_86,code=sm_86
+cflags = -pthread -B /home/patrick/miniconda3/envs/proj4_venv/compiler_compat -Wno-unused-result -Wsign-compare -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/patrick/miniconda3/envs/proj4_venv/include -fPIC -O2 -isystem /home/patrick/miniconda3/envs/proj4_venv/include -fPIC -I/data/patrick/miniconda3/envs/proj4_venv/lib/python3.10/site-packages/torch/include -I/data/patrick/miniconda3/envs/proj4_venv/lib/python3.10/site-packages/torch/include/torch/csrc/api/include -I/data/patrick/miniconda3/envs/proj4_venv/lib/python3.10/site-packages/torch/include/TH -I/data/patrick/miniconda3/envs/proj4_venv/lib/python3.10/site-packages/torch/include/THC -I/usr/local/cuda/include -I/data/patrick/miniconda3/envs/proj4_venv/include/python3.10 -c
+post_cflags = -O3 -std=c++17 -DTORCH_API_INCLUDE_EXTENSION_H '-DPYBIND11_COMPILER_TYPE="_gcc"' '-DPYBIND11_STDLIB="_libstdcpp"' '-DPYBIND11_BUILD_ABI="_cxxabi1011"' -DTORCH_EXTENSION_NAME=_freqencoder -D_GLIBCXX_USE_CXX11_ABI=0
+cuda_cflags = -I/data/patrick/miniconda3/envs/proj4_venv/lib/python3.10/site-packages/torch/include -I/data/patrick/miniconda3/envs/proj4_venv/lib/python3.10/site-packages/torch/include/torch/csrc/api/include -I/data/patrick/miniconda3/envs/proj4_venv/lib/python3.10/site-packages/torch/include/TH -I/data/patrick/miniconda3/envs/proj4_venv/lib/python3.10/site-packages/torch/include/THC -I/usr/local/cuda/include -I/data/patrick/miniconda3/envs/proj4_venv/include/python3.10 -c
+cuda_post_cflags = -D__CUDA_NO_HALF_OPERATORS__ -D__CUDA_NO_HALF_CONVERSIONS__ -D__CUDA_NO_BFLOAT16_CONVERSIONS__ -D__CUDA_NO_HALF2_OPERATORS__ --expt-relaxed-constexpr --compiler-options ''"'"'-fPIC'"'"'' -O3 -std=c++17 -U__CUDA_NO_HALF_OPERATORS__ -U__CUDA_NO_HALF_CONVERSIONS__ -U__CUDA_NO_HALF2_OPERATORS__ -use_fast_math -DTORCH_API_INCLUDE_EXTENSION_H '-DPYBIND11_COMPILER_TYPE="_gcc"' '-DPYBIND11_STDLIB="_libstdcpp"' '-DPYBIND11_BUILD_ABI="_cxxabi1011"' -DTORCH_EXTENSION_NAME=_freqencoder -D_GLIBCXX_USE_CXX11_ABI=0 -gencode=arch=compute_89,code=compute_89 -gencode=arch=compute_89,code=sm_89
+cuda_dlink_post_cflags = 
 ldflags = 
 
 rule compile
@@ -20,8 +21,11 @@ rule cuda_compile
 
 
 
-build /data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/freqencoder/build/temp.linux-x86_64-cpython-310/data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/freqencoder/src/bindings.o: compile /data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/freqencoder/src/bindings.cpp
-build /data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/freqencoder/build/temp.linux-x86_64-cpython-310/data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/freqencoder/src/freqencoder.o: cuda_compile /data/ruihan/16825/a4_internal/Q2/stable-dreamfusion/freqencoder/src/freqencoder.cu
+
+
+build /home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/freqencoder/build/temp.linux-x86_64-cpython-310/home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/freqencoder/src/bindings.o: compile /home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/freqencoder/src/bindings.cpp
+build /home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/freqencoder/build/temp.linux-x86_64-cpython-310/home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/freqencoder/src/freqencoder.o: cuda_compile /home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/freqencoder/src/freqencoder.cu
+
 
 
 
