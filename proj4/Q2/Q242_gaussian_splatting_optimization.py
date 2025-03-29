@@ -63,7 +63,7 @@ def render_360_gif(scene, output_path, radius=3.0, num_frames=60, res=128, devic
     frames = []
     for i in range(num_frames):
         azim = 360.0 * i / num_frames
-        elev = 15  # fixed elevation for slight top-down view
+        elev = 0  # fixed elevation for slight top-down view
         R, T = look_at_view_transform(dist=radius, elev=elev, azim=azim)
         camera = PerspectiveCameras(R=R, T=T, in_ndc=False, device=device,
                                     focal_length=torch.tensor([[res, res]], device=device).float(),
@@ -111,12 +111,14 @@ def run_sds_gaussian_optimization(args):
 
     # Training loop
     viz_frames = []
+    viz_depth_frames = []
     viz_gif_path = os.path.join(args.output_dir, "training_procedure.gif")
+    viz_gif_depth_path = os.path.join(args.output_dir, "training_procedure_depth.gif")
     for itr in tqdm(range(args.num_itrs)):
         camera_ndc = cameras[np.random.randint(0, len(cameras))]
         camera = ndc_to_screen_camera(camera_ndc, img_size=(args.res, args.res))
 
-        pred_img, _, _ = scene.render(
+        pred_img, pred_depth, _ = scene.render(
             camera,
             per_splat=args.gaussians_per_splat,
             img_size=(args.res, args.res),
@@ -142,8 +144,18 @@ def run_sds_gaussian_optimization(args):
             img.save(os.path.join(args.output_dir, f"iter_{itr}.png"))
             viz_frames.append(img)
 
+            # Save predicted depth
+            depth_np = pred_depth.detach().cpu().numpy()
+            depth_norm = (depth_np - depth_np.min()) / (depth_np.max() - depth_np.min() + 1e-6)
+            depth_uint8 = (depth_norm * 255).astype(np.uint8)
+            depth_uint8 = np.squeeze(depth_uint8)  # remove dimensions like (1, 1, 1)
+            depth_img = Image.fromarray(depth_uint8)
+            depth_img.save(os.path.join(args.output_dir, f"depth_{itr}.png"))            
+            viz_depth_frames.append(depth_img)
+
     print("[*] SDS-based optimization complete.")
     imageio.mimwrite(viz_gif_path, viz_frames, loop=0, duration=(1/10.0)*1000)
+    imageio.mimwrite(viz_gif_depth_path, viz_depth_frames, loop=0, duration=(1/10.0)*1000)
     render_360_gif(scene, output_path=args.output_dir, radius=3.0, num_frames=60, res=args.res, device=device)
 
 

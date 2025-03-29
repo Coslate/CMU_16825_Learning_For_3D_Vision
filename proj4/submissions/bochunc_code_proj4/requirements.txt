@@ -1,0 +1,94 @@
+accelerate==1.5.2
+antlr4-python3-runtime==4.9.3
+beautifulsoup4==4.13.3
+Brotli @ file:///croot/brotli-split_1736182456865/work
+certifi @ file:///croot/certifi_1738623731865/work/certifi
+charset-normalizer @ file:///croot/charset-normalizer_1721748349566/work
+contourpy==1.3.1
+cycler==0.12.1
+dataclasses @ file:///home/conda/feedstock_root/build_artifacts/dataclasses_1628958434797/work
+diffusers==0.32.2
+filelock @ file:///croot/filelock_1700591183607/work
+fonttools==4.56.0
+freqencoder @ file:///home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/freqencoder
+fsspec @ file:///home/conda/feedstock_root/build_artifacts/fsspec_1738501244951/work
+fvcore @ file:///home/conda/feedstock_root/build_artifacts/fvcore_1671623667463/work
+gdown==5.2.0
+gmpy2 @ file:///croot/gmpy2_1738085463648/work
+gridencoder @ file:///home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/proj4/Q2/gridencoder
+huggingface-hub==0.29.3
+hydra-core==1.3.2
+idna @ file:///croot/idna_1714398848350/work
+imagecodecs @ file:///home/conda/feedstock_root/build_artifacts/imagecodecs_1664235980738/work
+imageio==2.37.0
+imageio-ffmpeg==0.6.0
+importlib_metadata @ file:///home/conda/feedstock_root/build_artifacts/importlib-metadata_1737420181517/work
+iopath @ file:///home/conda/feedstock_root/build_artifacts/iopath_1723846728822/work
+Jinja2 @ file:///croot/jinja2_1737760107953/work
+jsonpatch==1.33
+jsonpointer==3.0.0
+kiwisolver==1.4.8
+lazy_loader @ file:///home/conda/feedstock_root/build_artifacts/lazy-loader_1733636780672/work
+lightning-utilities==0.14.2
+lpips==0.1.4
+markdown-it-py==3.0.0
+MarkupSafe @ file:///croot/markupsafe_1738584038848/work
+matplotlib==3.10.0
+mdurl==0.1.2
+mpmath @ file:///croot/mpmath_1690848262763/work
+narwhals==1.27.1
+networkx @ file:///croot/networkx_1737039604450/work
+ninja==1.11.1.4
+numpy==1.26.4
+nvdiffrast @ file:///home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/nvdiffrast
+omegaconf==2.3.0
+opencv-python==4.11.0.86
+packaging==24.2
+pandas==2.2.3
+pillow==11.1.0
+plotly==6.0.0
+plyfile @ file:///home/conda/feedstock_root/build_artifacts/plyfile_1724087904466/work
+portalocker @ file:///home/conda/feedstock_root/build_artifacts/portalocker_1731964053212/work
+protobuf==6.30.1
+psutil==7.0.0
+Pygments==2.19.1
+PyMCubes==0.1.6
+pymeshlab==2023.12.post3
+pyparsing==3.2.1
+PySocks @ file:///home/builder/ci_310/pysocks_1640793678128/work
+python-dateutil==2.9.0.post0
+pytorch-msssim==1.0.0
+pytorch3d @ git+https://github.com/facebookresearch/pytorch3d.git@75ebeeaea0908c5527e7b1e305fbc7681382db47
+pytz==2025.2
+PyWavelets==1.8.0
+PyYAML @ file:///croot/pyyaml_1728657952215/work
+regex==2024.11.6
+requests @ file:///croot/requests_1730999120400/work
+rich==13.9.4
+safetensors==0.5.3
+scikit-image @ file:///home/conda/feedstock_root/build_artifacts/scikit-image_1739948399191/work/dist/scikit_image-0.25.2-cp310-cp310-linux_x86_64.whl#sha256=755bc62010a9a67ce7384f2bbfc914800a5c05d4c5926a93afcf5a232b812ee6
+scipy==1.15.2
+six==1.17.0
+soupsieve==2.6
+sympy @ file:///croot/sympy_1738108488918/work
+tabulate @ file:///home/conda/feedstock_root/build_artifacts/tabulate_1733589744265/work
+tensorboardX==2.6.2.2
+termcolor @ file:///home/conda/feedstock_root/build_artifacts/termcolor_1733754631889/work
+tifffile @ file:///home/conda/feedstock_root/build_artifacts/tifffile_1665588749940/work
+tokenizers==0.21.1
+torch==2.1.1+cu121
+torch-ema==0.3
+torchaudio==2.1.1+cu121
+torchmetrics==1.7.0
+torchvision==0.16.1+cu121
+tornado==6.4.2
+tqdm==4.67.1
+transformers==4.50.0
+triton==2.1.0
+typing_extensions @ file:///croot/typing_extensions_1734714854207/work
+tzdata==2025.2
+urllib3 @ file:///croot/urllib3_1737133630106/work
+visdom==0.2.4
+websocket-client==1.8.0
+yacs @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_yacs_1737043264/work
+zipp @ file:///home/conda/feedstock_root/build_artifacts/zipp_1732827521216/work

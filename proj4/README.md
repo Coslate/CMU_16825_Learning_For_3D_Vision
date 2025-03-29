@@ -53,7 +53,17 @@ python ./Q23_nerf_optimization.py  --prompt 'a running cat' --lambda_entropy 0.0
 
 Task 2.4.1:
  python ./Q23_nerf_optimization.py  --prompt 'a standing corgi dog' --lambda_entropy 0.01 --lambda_orient 0.1 --latent_iter_ratio 0.2 --view_dep_text 1 --iters 5001 --output_dir ./output_q23_a_standing_corgi_dog_lentropy0.01_lorient0.1_literratio0.2_iters5001_viewdeptext1_test7 --out_gif True --guidance_scale 700
+or
+python ./Q23_nerf_optimization.py  --prompt 'a standing corgi dog' --lambda_entropy 0.1 --lambda_orient 0.1 --latent_iter_ratio 0.4 --view_dep_text 1 --iters 10001 --output_dir ./output_q23_a_standing_corgi_dog_lentropy0.1_lorient0.1_literratio0.4_iters10001_viewdeptext1_gs_800_test37 --out_gif True --guidance_scale 800
+
 python ./Q23_nerf_optimization.py --prompt 'a running monkey' --lambda_entropy 0.1 --lambda_orient 0.1 --latent_iter_ratio 0.2 --view_dep_text 1 --iters 6001 --output_dir ./output_q23_a_running_monkey_lentropy0.1_lorient0.1_literratio0.2_iters6001_viewdeptext1_gs_200_test27 --out_gif True --guidance_scale 200
+
+Task 2.4.2:
+python ./Q242_gaussian_splatting_optimization.py --prompt 'a running cat' --init_random_numpoints 50000 --num_views 256 --num_itrs 6000 --viz_freq 100 --guidance_scale 300 --gaussians_per_splat -1 --res 64  --output_dir ./output_q242_gaussian_a_running_cat_irn50000_nv256_itrs6000_gs300_gpsn1_res64
+python ./Q242_gaussian_splatting_optimization.py --prompt 'a walking monkey' --init_random_numpoints 50000 --num_views 256 --num_itrs 6000 --viz_freq 100 --guidance_scale 300 --gaussians_per_splat -1 --res 64  --output_dir ./output_q242_gaussian_a_walking_monkey_irn50000_nv256_itrs6000_gs300_gpsn1_res64_wdepth
+
+Task 2.4.3:
+python ./Q243_nerf_optimization_pixelsds.py --prompt "a spiral" --output_dir ./output_q243_a_spiral_iters5k_test --iters 5001 --latent_iter_ratio 0.2 --latent_only_iters 4001 --lpips_only_iters 1000 --lambda_entropy 0.001 --lambda_orient 0.1 --guidance_scale 100 --out_gif True --inter_genv 100
 
 ---
 

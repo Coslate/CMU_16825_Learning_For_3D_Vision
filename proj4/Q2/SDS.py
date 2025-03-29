@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 from diffusers import DDIMScheduler, StableDiffusionPipeline
+from torchvision import transforms
 
 
 class SDS:
@@ -44,6 +45,8 @@ class SDS:
             sd_model_key, torch_dtype=self.precision_t
         ).to(device)
 
+        self.pipe = sd_pipe
+
         self.vae = sd_pipe.vae
         self.tokenizer = sd_pipe.tokenizer
         self.text_encoder = sd_pipe.text_encoder
@@ -78,6 +81,22 @@ class SDS:
         )
         text_embeddings = self.text_encoder(text_input.input_ids.to(self.device))[0]
         return text_embeddings
+
+    @torch.no_grad()
+    def text_to_image(self, prompt, height=512, width=512, num_inference_steps=50, guidance_scale=7.5):
+        """
+        Generate image from text using Stable Diffusion.
+        Returns torch tensor [1, 3, H, W] in [0, 1]
+        """
+        image = self.pipe(prompt, height=height, width=width,
+                          num_inference_steps=num_inference_steps,
+                          guidance_scale=guidance_scale).images[0]
+        transform = transforms.Compose([
+            transforms.Resize((height, width)),
+            transforms.ToTensor()
+        ])
+        image_tensor = transform(image).unsqueeze(0).to(self.device)
+        return image_tensor        
 
     def encode_imgs(self, img):
         """
@@ -180,3 +199,32 @@ class SDS:
         targets = (latents + grad).detach()
         loss = F.mse_loss(latents, targets, reduction='sum') / B
         return loss
+
+    def pixel_sds_loss(self, images, cond_emb, uncond_emb, guidance_scale=100.0):
+        """
+        Args:
+            images: (B, 3, 512, 512), normalized to [-1, 1]
+            cond_emb, uncond_emb: text embeddings
+        Returns:
+            pixel-space SDS loss (scalar)
+        """
+        # Add noise using the diffusion schedule (e.g., DDIM, DDPMSampler)
+        timesteps = torch.randint(50, 950, (images.shape[0],), device=images.device).long()
+        noise = torch.randn_like(images)
+
+        noisy_imgs = self.scheduler.add_noise(images, noise, timesteps)
+    
+        # Get model prediction using conditional & unconditional guidance
+        with torch.no_grad():
+            eps_cond = self.unet(noisy_imgs, timesteps, cond_emb).sample
+            eps_uncond = self.unet(noisy_imgs, timesteps, uncond_emb).sample
+
+        # Apply classifier-free guidance
+        eps_guided = eps_uncond + guidance_scale * (eps_cond - eps_uncond)
+
+        # SDS gradient: ∇_x = (eps_guided - noise)
+        sds_grad = eps_guided - noise
+        sds_loss = (sds_grad ** 2).mean()
+
+        return sds_loss
+
