@@ -18,7 +18,18 @@ def create_parser():
     parser.add_argument('--exp_name', type=str, default='seg_demo')
     parser.add_argument('--num_visualize', type=int, default=5)
     parser.add_argument('--label_names', nargs='+', default=['chair', 'table', 'lamp', 'vase', 'bed', 'sofa'])
+    parser.add_argument('--rotate_angle', type=float, default=0.0, help='Angle in degrees to rotate input point clouds (Z-axis)')
     return parser
+
+def rotate_point_cloud_z(batch_pc, angle_deg):
+    """Rotate the point cloud along the Z-axis by angle in degrees."""
+    angle_rad = np.radians(angle_deg)
+    cosval = np.cos(angle_rad)
+    sinval = np.sin(angle_rad)
+    rotation_matrix = torch.tensor([[cosval, -sinval, 0],
+                                    [sinval,  cosval, 0],
+                                    [0,       0,      1]], dtype=torch.float32, device=batch_pc.device)
+    return torch.matmul(batch_pc, rotation_matrix)  # (B, N, 3) @ (3, 3) -> (B, N, 3)    
 
 
 if __name__ == '__main__':
@@ -43,6 +54,7 @@ if __name__ == '__main__':
     with torch.no_grad():
         for i in range(B):
             pc = test_data[i:i+1].to(args.device)  # (1, N, 3)
+            pc = rotate_point_cloud_z(pc, angle_deg=args.rotate_angle)  # Rotate
             gt = test_label[i]  # (N,)
             pred = model(pc).argmax(dim=2).squeeze(0).cpu()  # (N,)
             acc = pred.eq(gt).sum().item() / N
@@ -56,9 +68,34 @@ if __name__ == '__main__':
     good_ids = sorted_indices[-4:-1]
     selected_ids = list(bad_ids) + list(good_ids)
 
+
+    print("\n Visualizing specific predictions...")
+    for i, obj_idx in enumerate([397, 562, 616, 26, 235]):
+        #pts = test_data[obj_idx]
+        gt = test_label[obj_idx]
+        pred = pred_all[obj_idx]
+        acc = acc_all[obj_idx]
+
+        if acc < 0.50:
+            base_name = f"examine_fail_{obj_idx}"
+        elif acc > 0.90:
+            base_name = f"examine_correct_{obj_idx}"
+        else:
+            base_name = f"examine_{obj_idx}"
+
+        viz_seg(rotate_point_cloud_z(test_data[obj_idx:obj_idx+1], angle_deg=args.rotate_angle).squeeze(0).cpu(),
+                gt,
+                f"{args.output_dir}/{base_name}_idx_{obj_idx}_gt.gif",
+                args.device)
+        viz_seg(rotate_point_cloud_z(test_data[obj_idx:obj_idx+1], angle_deg=args.rotate_angle).squeeze(0).cpu(),
+                pred,
+                f"{args.output_dir}/{base_name}_idx_{obj_idx}_pred.gif",
+                args.device)
+        print(f"[{base_name} #{obj_idx}] accuracy: {acc:.2%}")
+
     print("\n Visualizing segmentation predictions...")
     for i, obj_idx in enumerate(selected_ids):
-        pts = test_data[obj_idx]
+        #pts = test_data[obj_idx]
         gt = test_label[obj_idx]
         pred = pred_all[obj_idx]
         acc = acc_all[obj_idx]
@@ -70,8 +107,14 @@ if __name__ == '__main__':
         else:
             continue
 
-        viz_seg(pts, gt, f"{args.output_dir}/{base_name}_gt.gif", args.device)
-        viz_seg(pts, pred, f"{args.output_dir}/{base_name}_pred.gif", args.device)
-        print(f"[{base_name}] accuracy: {acc:.2%}")
+        viz_seg(rotate_point_cloud_z(test_data[obj_idx:obj_idx+1], angle_deg=args.rotate_angle).squeeze(0).cpu(),
+                gt,
+                f"{args.output_dir}/{base_name}_idx_{obj_idx}_gt.gif",
+                args.device)
+        viz_seg(rotate_point_cloud_z(test_data[obj_idx:obj_idx+1], angle_deg=args.rotate_angle).squeeze(0).cpu(),
+                pred,
+                f"{args.output_dir}/{base_name}_idx_{obj_idx}_pred.gif",
+                args.device)
+        print(f"[{base_name} #{obj_idx}] accuracy: {acc:.2%}")
 
     print(f"\n Saved all visualizations to: {args.output_dir}")

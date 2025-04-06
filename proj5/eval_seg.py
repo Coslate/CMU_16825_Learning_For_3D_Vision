@@ -28,8 +28,19 @@ def create_parser():
     parser.add_argument('--task', type=str, default='seg')
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--num_workers', type=int, default=0)
+    parser.add_argument('--rotate_angle', type=float, default=0.0, help='Angle in degrees to rotate input point clouds (Z-axis)')
 
     return parser
+
+def rotate_point_cloud_z(batch_pc, angle_deg):
+    """Rotate the point cloud along the Z-axis by angle in degrees."""
+    angle_rad = np.radians(angle_deg)
+    cosval = np.cos(angle_rad)
+    sinval = np.sin(angle_rad)
+    rotation_matrix = torch.tensor([[cosval, -sinval, 0],
+                                    [sinval,  cosval, 0],
+                                    [0,       0,      1]], dtype=torch.float32, device=batch_pc.device)
+    return torch.matmul(batch_pc, rotation_matrix)  # (B, N, 3) @ (3, 3) -> (B, N, 3)    
 
 
 if __name__ == '__main__':
@@ -84,6 +95,7 @@ if __name__ == '__main__':
         for batch in test_dataloader:
             point_clouds, labels = batch
             point_clouds = point_clouds.to(args.device)
+            point_clouds = rotate_point_cloud_z(point_clouds, angle_deg=args.rotate_angle)  # Rotate
             labels = labels.to(args.device).to(torch.long)
 
             outputs = model(point_clouds)  # (B, N, C)

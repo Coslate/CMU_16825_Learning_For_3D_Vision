@@ -6,6 +6,16 @@ from models import cls_model
 from data_loader import get_data_loader
 from utils import viz_seg, create_dir, viz_cls
 
+def rotate_point_cloud_z(batch_pc, angle_deg):
+    """Rotate the point cloud along the Z-axis by angle in degrees."""
+    angle_rad = np.radians(angle_deg)
+    cosval = np.cos(angle_rad)
+    sinval = np.sin(angle_rad)
+    rotation_matrix = torch.tensor([[cosval, -sinval, 0],
+                                    [sinval,  cosval, 0],
+                                    [0,       0,      1]], dtype=torch.float32, device=batch_pc.device)
+    return torch.matmul(batch_pc, rotation_matrix)  # (B, N, 3) @ (3, 3) -> (B, N, 3)    
+
 def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     create_dir(args.output_dir)
@@ -30,6 +40,7 @@ def main(args):
         #preds = outputs.argmax(dim=1).cpu()
         for batch_points, batch_labels in test_loader:
             batch_points = batch_points.to(device)
+            batch_points = rotate_point_cloud_z(batch_points, angle_deg=args.rotate_angle)
             batch_outputs = model(batch_points)             # (B, num_classes)
             batch_preds = batch_outputs.argmax(dim=1).cpu() # (B,)
             preds.append(batch_preds)
@@ -45,6 +56,21 @@ def main(args):
         2: torch.tensor([0.0, 0.0, 1.0]),  # lamp  → blue
     }
 
+    print("\n Examine:")
+    for i, idx in enumerate([806, 333, 690, 406, 750, 650]):
+        pred_cls = preds[idx].item()
+        gt_cls = labels[idx].item()
+        print(f"[{i}] GT: {class_names[gt_cls]} | Pred: {class_names[pred_cls]}")
+        fake_labels = torch.full((args.num_points,), pred_cls)
+        viz_cls(
+            verts=rotate_point_cloud_z(data[idx:idx+1], angle_deg=args.rotate_angle).squeeze(0).cpu(),
+            labels=fake_labels,
+            path=os.path.join(args.output_dir, f"examine_{i}_{class_names[pred_cls]}_idx_{idx}.gif"),
+            device=device,
+            colors=colors,
+            loop=0
+        )
+
     # Visualize random correct predictions
     print("\n Random correct predictions:")
     correct_indices = (preds == labels).nonzero().squeeze().tolist()
@@ -56,9 +82,9 @@ def main(args):
         print(f"[{i}] GT: {class_names[gt_cls]} | Pred: {class_names[pred_cls]}")
         fake_labels = torch.full((args.num_points,), pred_cls)
         viz_cls(
-            verts=data[idx].cpu(),
+            verts=rotate_point_cloud_z(data[idx:idx+1], angle_deg=args.rotate_angle).squeeze(0).cpu(),
             labels=fake_labels,
-            path=os.path.join(args.output_dir, f"correct_{i}_{class_names[pred_cls]}.gif"),
+            path=os.path.join(args.output_dir, f"correct_{i}_{class_names[pred_cls]}_idx_{idx}.gif"),
             device=device,
             colors=colors,
             loop=0
@@ -75,9 +101,9 @@ def main(args):
             print(f"- GT: {class_names[gt]} | Pred: {class_names[pred]} | Sample #{idx}")
             fake_labels = torch.full((args.num_points,), pred)
             viz_cls(
-                verts=data[idx].cpu(),
+                verts=rotate_point_cloud_z(data[idx:idx+1], angle_deg=args.rotate_angle).squeeze(0).cpu(),
                 labels=fake_labels,
-                path=os.path.join(args.output_dir, f"fail_GT_{class_names[gt]}_PRED_{class_names[pred]}.gif"),
+                path=os.path.join(args.output_dir, f"fail_GT_{class_names[gt]}_PRED_{class_names[pred]}_idx_{idx}.gif"),
                 device=device,
                 colors=colors,
                 loop=0
@@ -108,6 +134,7 @@ def create_parser():
     parser.add_argument('--task', type=str, default='cls', help='Task name: cls or seg')
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--num_workers', type=int, default=0)
+    parser.add_argument('--rotate_angle', type=float, default=0.0, help='Angle in degrees to rotate input point clouds (Z-axis)')
     return parser
 
 if __name__ == '__main__':
