@@ -22,8 +22,8 @@ def main(args):
     class_names = ["chair", "vase", "lamp"]
 
     # Load test data
-    data = torch.from_numpy(np.load(args.test_data)).float().to(device)  # (B, N, 3)
-    labels = torch.from_numpy(np.load(args.test_label)).long()           # (B,)
+    ind = np.random.choice(10000, args.num_points, replace=False)
+    data = torch.from_numpy(np.load(args.test_data)[:, ind, :]).float().to(device)  # (B, num_points, 3)
     B = data.shape[0]
 
     # Load model

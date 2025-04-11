@@ -45,8 +45,9 @@ if __name__ == '__main__':
     print(f"Loaded model from {model_path}")
 
     # Load test data
-    test_data = torch.from_numpy(np.load(args.test_data)).float()  # (B, N, 3)
-    test_label = torch.from_numpy(np.load(args.test_label)).long()  # (B, N)
+    ind = np.random.choice(10000, args.num_points, replace=False)
+    test_data = torch.from_numpy((np.load(args.test_data))[:,ind,:]) #(B, num_points, 3)
+    test_label = torch.from_numpy((np.load(args.test_label))[:,ind]) #(B, num_points)
     B, N, _ = test_data.shape
 
     # Predict

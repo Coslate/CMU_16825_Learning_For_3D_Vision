@@ -5,6 +5,7 @@ import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 
 from models import cls_model, seg_model
+from models_dgcnn import DGCNN_cls, DGCNN_seg
 from data_loader import get_data_loader
 from utils import save_checkpoint, create_dir
 from torch.optim.lr_scheduler import LambdaLR
@@ -111,9 +112,25 @@ def main(args):
 
     # ------ TO DO: Initialize Model ------
     if args.task == "cls":
-        model = cls_model(num_classes=3).to(args.device)
+        if args.use_dgcnn:
+            #model = DGCNN_cls(num_classes=3).to(args.device)
+            model = DGCNN_cls(num_classes=3)
+            if torch.cuda.device_count() > 1:
+                print(f"Using {torch.cuda.device_count()} GPUs.")
+                model = torch.nn.DataParallel(model)
+            model = model.to(args.device)
+        else:
+            model = cls_model(num_classes=3).to(args.device)
     else:
-        model = seg_model(num_seg_classes=args.num_seg_class).to(args.device)
+        if args.use_dgcnn:
+            #model = DGCNN_seg(num_seg_classes=args.num_seg_class).to(args.device)
+            model = DGCNN_seg(num_seg_classes=args.num_seg_class)
+            if torch.cuda.device_count() > 1:
+                print(f"Using {torch.cuda.device_count()} GPUs.")
+                model = torch.nn.DataParallel(model)
+            model = model.to(args.device)
+        else:
+            model = seg_model(num_seg_classes=args.num_seg_class).to(args.device)    
     
     # Load Checkpoint 
     if args.load_checkpoint:
@@ -194,6 +211,7 @@ def create_parser():
     parser.add_argument('--load_checkpoint', type=str, default='')
     parser.add_argument('--warmup_steps', type=int, default=10, help='Number of warmup epochs')
     parser.add_argument('--eta_min', type=float, default=1e-6, help='Min LR after cosine annealing')
+    parser.add_argument("--use_dgcnn", action="store_true", help="Whether to use DGCNN architecture for cls and seg tasks.")
 
     
 

@@ -27,10 +27,13 @@ class CustomDataSet(Dataset):
         if hasattr(args, 'num_points') and args.num_points is not None and args.num_points < 10000:
             ind = np.random.choice(10000, args.num_points, replace=False)
             self.data = torch.from_numpy(data[:, ind, :]).float()   # (B, num_points, 3)
+            if args.task == 'seg':
+                self.label = torch.from_numpy(label[:, ind]).long()
+            else:
+                self.label = torch.from_numpy(label).long()
         else:
             self.data = torch.from_numpy(data).float()  # Use all 10000 points
-
-        self.label = torch.from_numpy(label).long()
+            self.label = torch.from_numpy(label).long()
 
     def __len__(self):
         return self.data.size()[0]
