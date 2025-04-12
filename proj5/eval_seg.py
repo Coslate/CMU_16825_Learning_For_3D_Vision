@@ -3,6 +3,7 @@ import argparse
 
 import torch
 from models import seg_model
+from models_dgcnn import DGCNN_cls, DGCNN_seg
 from data_loader import get_data_loader
 from utils import create_dir, viz_seg
 
@@ -29,6 +30,8 @@ def create_parser():
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--num_workers', type=int, default=0)
     parser.add_argument('--rotate_angle', type=float, default=0.0, help='Angle in degrees to rotate input point clouds (Z-axis)')
+    parser.add_argument('--model_path', type=str, default=None) #'./checkpoints/seg/best_model.pt'
+    parser.add_argument("--use_dgcnn", action="store_true", help="Whether to use DGCNN architecture for cls and seg tasks.")
 
     return parser
 
@@ -51,10 +54,19 @@ if __name__ == '__main__':
     create_dir(args.output_dir)
 
     # ------ TO DO: Initialize Model for Segmentation Task  ------
-    model = seg_model(num_seg_classes=args.num_seg_class).to(args.device)
+    #model = seg_model(num_seg_classes=args.num_seg_class).to(args.device)
+    if args.use_dgcnn:
+        #model = DGCNN_seg(num_seg_classes=args.num_seg_class).to(args.device)
+        model = DGCNN_seg(num_seg_classes=args.num_seg_class)
+        if torch.cuda.device_count() > 1:
+            print(f"Using {torch.cuda.device_count()} GPUs.")
+            model = torch.nn.DataParallel(model)
+        model = model.to(args.device)
+    else:
+        model = seg_model(num_seg_classes=args.num_seg_class).to(args.device)    
     
     # Load Model Checkpoint
-    model_path = './checkpoints/seg/{}.pt'.format(args.load_checkpoint)
+    model_path = args.model_path if args.model_path is not None else './checkpoints/seg/{}.pt'.format(args.load_checkpoint)
     #model_path = './checkpoints_lr1e-2_numepochs300_etamin1e-6_warmupsteps10/seg/{}.pt'.format(args.load_checkpoint)
     #model_path = './checkpoints_lr9e-3_numepochs300_etamin3e-6_warmupsteps10/seg/{}.pt'.format(args.load_checkpoint)
     #model_path = './checkpoints_lr9e-3_numepochs300_etamin5e-5_warmupsteps10/seg/{}.pt'.format(args.load_checkpoint)
@@ -63,9 +75,13 @@ if __name__ == '__main__':
     #model_path = './checkpoints_lr9e-3_numepochs300_etamin1e-5_warmupsteps10/seg/{}.pt'.format(args.load_checkpoint)
     #model_path = './checkpoints_lr9e-3_numepochs300_etamin5e-6_warmupsteps10/seg/{}.pt'.format(args.load_checkpoint)
 
+    print(f"model_path = {model_path}")
     with open(model_path, 'rb') as f:
         state_dict = torch.load(f, map_location=args.device)
-        model.load_state_dict(state_dict)
+        if 'model_state_dict' in state_dict:
+            model.load_state_dict(state_dict['model_state_dict'])
+        else:
+            model.load_state_dict(state_dict)
     model.eval()
     print ("successfully loaded checkpoint from {}".format(model_path))
 

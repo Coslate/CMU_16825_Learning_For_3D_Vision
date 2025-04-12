@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import argparse
 from models import cls_model
+from models_dgcnn import DGCNN_cls, DGCNN_seg
 from data_loader import get_data_loader
 from utils import viz_seg, create_dir, viz_cls
 
@@ -27,9 +28,30 @@ def main(args):
     B = data.shape[0]
 
     # Load model
-    model = cls_model(num_classes=args.num_classes).to(device)
-    model.load_state_dict(torch.load(args.checkpoint_path, map_location=device))
+    #model = cls_model(num_classes=args.num_classes).to(device)
+    if args.use_dgcnn:
+        #model = DGCNN_cls(num_classes=3).to(args.device)
+        model = DGCNN_cls(num_classes=3)
+        if torch.cuda.device_count() > 1:
+            print(f"Using {torch.cuda.device_count()} GPUs.")
+            model = torch.nn.DataParallel(model)
+        model = model.to(args.device)
+    else:
+        model = cls_model(num_classes=args.num_classes).to(device)
+
+    #model.load_state_dict(torch.load(args.checkpoint_path, map_location=device))
+    #model.eval()
+
+    model_path = args.model_path if args.model_path is not None else args.checkpoint_path
+    print(f"model_path = {model_path}")
+    with open(model_path, 'rb') as f:
+        state_dict = torch.load(f, map_location=args.device)
+        if 'model_state_dict' in state_dict:
+            model.load_state_dict(state_dict['model_state_dict'])
+        else:
+            model.load_state_dict(state_dict)
     model.eval()
+    print ("successfully loaded checkpoint from {}".format(model_path))
 
     test_loader = get_data_loader(args=args, train=False)
     preds = []
@@ -135,8 +157,11 @@ def create_parser():
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--num_workers', type=int, default=0)
     parser.add_argument('--rotate_angle', type=float, default=0.0, help='Angle in degrees to rotate input point clouds (Z-axis)')
+    parser.add_argument('--model_path', type=str, default=None) #'./checkpoints/seg/best_model.pt'
+    parser.add_argument("--use_dgcnn", action="store_true", help="Whether to use DGCNN architecture for cls and seg tasks.")
     return parser
 
 if __name__ == '__main__':
     args = create_parser().parse_args()
+    args.device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
     main(args)

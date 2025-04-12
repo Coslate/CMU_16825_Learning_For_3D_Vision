@@ -131,20 +131,30 @@ def main(args):
             model = model.to(args.device)
         else:
             model = seg_model(num_seg_classes=args.num_seg_class).to(args.device)    
-    
-    # Load Checkpoint 
-    if args.load_checkpoint:
-        model_path = "{}/{}.pt".format(args.checkpoint_dir,args.load_checkpoint)
-        with open(model_path, 'rb') as f:
-            state_dict = torch.load(f, map_location=args.device)
-            model.load_state_dict(state_dict)
-        print ("successfully loaded checkpoint from {}".format(model_path))
 
     # Optimizer
     opt = optim.Adam(model.parameters(), args.lr, betas=(0.9, 0.999))
 
     # Scheduler: Cosine Annealing over total epochs
     scheduler = LambdaLR(opt, lr_lambda=warmup_cosine_lambda)
+    
+    # Load Checkpoint 
+    start_epoch = 0
+    if args.load_checkpoint:
+        model_path = "{}/{}.pt".format(args.checkpoint_dir, args.load_checkpoint_file)
+        with open(model_path, 'rb') as f:
+            state_dict = torch.load(f, map_location=args.device)
+            if 'model_state_dict' in state_dict:
+                model.load_state_dict(state_dict['model_state_dict'])
+            else:
+                model.load_state_dict(state_dict)
+            if 'optimizer_state_dict' in state_dict:
+                opt.load_state_dict(state_dict['optimizer_state_dict'])
+            if 'scheduler_state_dict' in state_dict:
+                scheduler.load_state_dict(state_dict['scheduler_state_dict'])  # <-- Add this            
+
+            start_epoch = state_dict.get('epoch', 0) + 1  # resume from next epoch            
+        print ("successfully loaded checkpoint from {}".format(model_path))
 
     # Dataloader for Training & Testing
     train_dataloader = get_data_loader(args=args, train=True)
@@ -152,12 +162,13 @@ def main(args):
 
     print ("successfully loaded data")
 
-    best_acc = -1
-
+    best_acc = args.best_acc if args.best_acc != 0.0 else -1
     print ("======== start training for {} task ========".format(args.task))
     print ("(check tensorboard for plots of experiment logs/{})".format(args.task+"_"+args.exp_name))
     
-    for epoch in range(args.num_epochs):
+    for epoch in range(start_epoch, args.num_epochs):
+        scheduler.step(epoch)
+        current_lr = opt.param_groups[0]['lr']
 
         # Train
         train_epoch_loss = train(train_dataloader, model, opt, epoch, args, writer)
@@ -167,20 +178,18 @@ def main(args):
 
         print ("epoch: {}   train loss: {:.4f}   test accuracy: {:.4f}".format(epoch, train_epoch_loss, current_acc))
         
-        scheduler.step()
-        current_lr = opt.param_groups[0]['lr']
         # Save Model Checkpoint Regularly
         if epoch % args.checkpoint_every == 0:
             print ("checkpoint saved at epoch {}".format(epoch))
             current_lr = opt.param_groups[0]['lr']
             print(f"learning_rate = {current_lr}")
-            save_checkpoint(epoch=epoch, model=model, args=args, best=False)
+            save_checkpoint(epoch=epoch, model=model, args=args, opt=opt, scheduler=scheduler, best=False)
 
         # Save Best Model Checkpoint
         if (current_acc >= best_acc):
             best_acc = current_acc
             print ("best model saved at epoch {}".format(epoch))
-            save_checkpoint(epoch=epoch, model=model, args=args, best=True)
+            save_checkpoint(epoch=epoch, model=model, args=args, opt=opt, scheduler=scheduler, best=True)
 
 
     print ("======== training completes ========")
@@ -208,9 +217,11 @@ def create_parser():
     parser.add_argument('--checkpoint_dir', type=str, default='./checkpoints')
     parser.add_argument('--checkpoint_every', type=int , default=10)
 
-    parser.add_argument('--load_checkpoint', type=str, default='')
+    parser.add_argument('--load_checkpoint', type=bool, default=False)
+    parser.add_argument('--load_checkpoint_file', type=str, default='./best_model.pt')
     parser.add_argument('--warmup_steps', type=int, default=10, help='Number of warmup epochs')
     parser.add_argument('--eta_min', type=float, default=1e-6, help='Min LR after cosine annealing')
+    parser.add_argument('--best_acc', type=float, default=0.0, help='Best test accuracy during last run.')
     parser.add_argument("--use_dgcnn", action="store_true", help="Whether to use DGCNN architecture for cls and seg tasks.")
 
     

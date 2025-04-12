@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 import torch
 from models import seg_model
+from models_dgcnn import DGCNN_cls, DGCNN_seg
 from utils import viz_seg, create_dir
 from data_loader import get_data_loader
 
@@ -16,9 +17,13 @@ def create_parser():
     parser.add_argument('--test_label', type=str, default='./data/seg/label_test.npy')
     parser.add_argument('--output_dir', type=str, default='./output/seg_vis')
     parser.add_argument('--exp_name', type=str, default='seg_demo')
+    parser.add_argument('--task', type=str, default='seg', help='Task name: cls or seg')
+    parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--num_visualize', type=int, default=5)
     parser.add_argument('--label_names', nargs='+', default=['chair', 'table', 'lamp', 'vase', 'bed', 'sofa'])
     parser.add_argument('--rotate_angle', type=float, default=0.0, help='Angle in degrees to rotate input point clouds (Z-axis)')
+    parser.add_argument('--model_path', type=str, default=None) #'./checkpoints/seg/best_model.pt'
+    parser.add_argument("--use_dgcnn", action="store_true", help="Whether to use DGCNN architecture for cls and seg tasks.")
     return parser
 
 def rotate_point_cloud_z(batch_pc, angle_deg):
@@ -38,10 +43,27 @@ if __name__ == '__main__':
     create_dir(args.output_dir)
 
     # Load model
-    model = seg_model(num_seg_classes=args.num_seg_class).to(args.device)
-    model_path = f'./checkpoints/seg/{args.load_checkpoint}.pt'
-    model.load_state_dict(torch.load(model_path, map_location=args.device))
+    #model = seg_model(num_seg_classes=args.num_seg_class).to(args.device)
+    if args.use_dgcnn:
+        #model = DGCNN_seg(num_seg_classes=args.num_seg_class).to(args.device)
+        model = DGCNN_seg(num_seg_classes=args.num_seg_class)
+        if torch.cuda.device_count() > 1:
+            print(f"Using {torch.cuda.device_count()} GPUs.")
+            model = torch.nn.DataParallel(model)
+        model = model.to(args.device)
+    else:
+        model = seg_model(num_seg_classes=args.num_seg_class).to(args.device)    
+
+    model_path = args.model_path if args.model_path is not None else './checkpoints/seg/{}.pt'.format(args.load_checkpoint)
+    print(f"model_path = {model_path}")
+    with open(model_path, 'rb') as f:
+        state_dict = torch.load(f, map_location=args.device)
+        if 'model_state_dict' in state_dict:
+            model.load_state_dict(state_dict['model_state_dict'])
+        else:
+            model.load_state_dict(state_dict)
     model.eval()
+    print ("successfully loaded checkpoint from {}".format(model_path))
     print(f"Loaded model from {model_path}")
 
     # Load test data

@@ -10,12 +10,19 @@ from pytorch3d.renderer import (
 )
 import imageio
 
-def save_checkpoint(epoch, model, args, best=False):
+def save_checkpoint(epoch, model, args, opt, scheduler, best=False):
     if best:
         path = os.path.join(args.checkpoint_dir, 'best_model.pt')
     else:
         path = os.path.join(args.checkpoint_dir, 'model_epoch_{}.pt'.format(epoch))
-    torch.save(model.state_dict(), path)
+    #torch.save(model.state_dict(), path)
+
+    torch.save({
+        'epoch': epoch,
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': opt.state_dict(),
+        'scheduler_state_dict': scheduler.state_dict()
+    }, path)    
 
 def create_dir(directory):
     """

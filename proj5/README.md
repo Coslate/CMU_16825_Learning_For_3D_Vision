@@ -80,20 +80,21 @@ python ./vis_seg_predictions.py --num_points 64 --output_dir ./output/seg_vis_nu
 Task4:
 For classification task: 
 To train:
-CUDA_VISIBLE_DEVICES=0,1,2,3,4 python ./train.py --task cls --use_dgcnn --checkpoint_dir ./checkpoints_dgcnn --batch_size 32 --num_workers 8 --checkpoint_every 50 --num_epochs 251
+CUDA_VISIBLE_DEVICES=0,1,2,3,4 python ./train.py --task cls --use_dgcnn --checkpoint_dir ./checkpoints_dgcnn --batch_size 32 --num_workers 8 --checkpoint_every 50 --num_epochs 201
 To evaluation test accuracy: 
-python ./eval_cls.py --num_cls_class 3 --output_dir ./output
+CUDA_VISIBLE_DEVICES=0,1,2,3,4 python ./eval_cls.py --i 0 --exp_name 0 --output_dir ./output_dgcnn/cls_vis --use_dgcnn --model_path ./checkpoints_dgcnn/cls/best_model.pt  --task cls --batch_size 32
 To visualize:
-python ./vis_cls_predictions.py --output_dir ./output/cls_vis
+CUDA_VISIBLE_DEVICES=0,1,2,3,4 python ./vis_cls_predictions.py --model_path ./checkpoints_dgcnn/cls/best_model.pt --use_dgcnn --output_dir ./output_dgcnn/cls_vis/
 
 Task 2:
 For segmentation task:
 To train:
-python ./train.py --task seg  --num_epochs 300 --lr 9e-3 --warmup_steps 10 --eta_min 5e-6
+CUDA_VISIBLE_DEVICES=0,1,2,3,4 python ./train.py --task seg --use_dgcnn --checkpoint_dir ./checkpoints_dgcnn --batch_size 32 --num_workers 8 --checkpoint_every 50 --num_epochs 251
 To evaluation test accuracy: 
-python ./eval_seg.py --i 0 --exp_name 0 --output_dir ./output/seg_vis
+CUDA_VISIBLE_DEVICES=0,1,2,3,4 python ./eval_seg.py --i 0 --exp_name 0 --output_dir ./
+output_dgcnn/seg_vis --use_dgcnn --model_path ./checkpoints_dgcnn/seg/best_model.pt  --task seg --batch_size 32
 To visualize:
-python ./vis_seg_predictions.py
+CUDA_VISIBLE_DEVICES=0,1,2,3,4 python ./vis_seg_predictions.py --model_path ./checkpoints_dgcnn/seg/best_model.pt --use_dgcnn --output_dir ./output_dgcnn/seg_vis
 
 
 
