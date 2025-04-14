@@ -1,0 +1,79 @@
+seed: 1
+
+type: train_images
+
+data:
+  image_size: [128, 128]
+  dataset_name: lego
+
+#few_views: 20 #For 8.2
+#few_views: 10 #For 8.2
+#few_views: 7 #For 8.2
+#few_views: 5 #For 8.2
+
+renderer:
+  type: volume_sdf
+  chunk_size: 32768
+  white_background: False
+  use_verbose_name: True
+
+  alpha: 15
+  beta: 0.05
+  #beta: 1
+
+  relighting_function:
+    type: none
+
+  #neus_sdf: True
+
+sampler:
+  type: stratified
+  n_pts_per_ray: 128
+
+  min_depth: 2.0
+  max_depth: 6.0
+
+training:
+  #num_epochs: 250
+  #num_epochs: 300
+  num_epochs: 151
+  pretrain_iters: 1000
+  batch_size: 1024
+  lr: 0.0005
+
+  lr_scheduler_step_size: 50
+  lr_scheduler_gamma: 0.8
+
+  checkpoint_path: ./volsdf_checkpoint_alpha15_beta0.05
+  #checkpoint_path: ./volsdf_checkpoint_alpha15_beta0.05_few_views20
+  #checkpoint_path: ./volsdf_checkpoint_alpha15_beta0.05_few_views10
+  #checkpoint_path: ./volsdf_checkpoint_alpha15_beta0.05_few_views7
+  #checkpoint_path: ./volsdf_checkpoint_alpha15_beta0.05_few_views5
+  #checkpoint_path: ./volsdf_checkpoint_alpha15_beta0.05_neus_sdf
+  checkpoint_interval: 50
+  resume: True
+
+  render_interval: 10
+
+  #inter_weight: 0.1
+  inter_weight: 0.3
+  #eikonal_weight: 0.02
+  eikonal_weight: 0.04
+  #eikonal_weight: 0.1
+  bounds: [[-4, -4, -4], [4, 4, 4]]
+
+implicit_function:
+  type: neural_surface
+
+  #neus_s_trainable: True
+  n_harmonic_functions_xyz: 6
+
+  n_layers_distance: 6
+  n_hidden_neurons_distance: 256
+  append_distance: []
+
+  #n_layers_color: 2
+  n_layers_color: 6
+  #n_hidden_neurons_color: 128
+  n_hidden_neurons_color: 256
+  append_color: []

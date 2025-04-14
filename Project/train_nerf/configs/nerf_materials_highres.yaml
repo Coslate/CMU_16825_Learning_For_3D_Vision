@@ -1,0 +1,81 @@
+seed: 1
+
+type: train_nerf
+data_path: ./data/materials
+
+#output_gif_file: ./images/part_4_1.nerf_materials_highres.gif
+#output_gif_file: ./images/part_4_1.nerf_materials_highres.use_views.gif
+#output_gif_file: ./training_result_20250412/images/nerf_materials_highres.use_views.gif
+output_gif_file: ./train_nerf/training_result_20250413-3/images/nerf_materials_highres.use_views.gif
+#output_gif_file: ./images/part_4_2.nerf_materials_highres.use_views.gif
+#output_gif_file: ./images/part_4_2.nerf_materials_highres.use_views.use_coarse_fine.gif
+
+training:
+  #num_epochs: 250
+  #num_epochs: 261
+  #num_epochs: 201
+  #num_epochs: 1000 #for q4.2 coarse-fine sampling NeRF
+  num_epochs: 3001 #for project
+  #num_epochs: 11 #for project
+  #num_epochs: 201 #for q4.2 coarse-fine sampling NeRF
+  #batch_size: 1024
+  batch_size: 512
+  lr: 0.0001
+
+  lr_scheduler_step_size: 50
+  lr_scheduler_gamma: 0.7
+  #lr_scheduler_gamma: 0.8
+  #lr_scheduler_gamma: 0.6
+
+  #checkpoint_path: ./checkpoints.q4_1.nerf_materials_highres
+  #checkpoint_path: ./checkpoints.q4_1.nerf_materials_highres.use_views
+  #checkpoint_path: ./training_result_20250412/num_epochs3001_batch_size_1024_lr_1e-4_image_size128_views/checkpoints.nerf_materials_highres.use_views
+  checkpoint_path: ./train_nerf/training_result_20250413-3/num_epochs3001_batch_size_512_lr_1e-4_image_size128_views_samplepts512/checkpoints.nerf_materials_highres.use_views
+  #checkpoint_path: ./checkpoints.q4_2.nerf_materials_highres.use_views
+  #checkpoint_path: ./checkpoints.q4_2.nerf_materials_highres.use_views.use_coarse_fine
+  checkpoint_interval: 300
+  #checkpoint_interval: 5
+  resume: False
+
+  render_interval: 300
+  #render_interval: 2
+  val_step: 300
+  #val_step: 2
+
+data:
+  #image_size: [400, 400]
+  image_size: [128, 128]
+  dataset_name: materials
+
+renderer:
+  type: volume
+  chunk_size: 32768
+  white_background: False
+
+sampler:
+  type: stratified
+  #type: coarse_fine
+  n_pts_per_ray: 512
+
+  min_depth: 1.0
+  max_depth: 7.0
+
+
+  n_coarse_pts_per_ray: 128
+  n_fine_pts_per_ray: 150
+  #use_fine_sampling: True
+  use_fine_sampling: False
+
+implicit_function:
+  type: nerf
+
+  use_views: True 
+  #use_views: False
+  n_harmonic_functions_xyz: 10
+  #n_harmonic_functions_xyz: 6
+  n_harmonic_functions_dir: 3
+  n_hidden_neurons_xyz: 192
+  n_hidden_neurons_dir: 64
+  density_noise_std: 0.0
+  n_layers_xyz: 8
+  append_xyz: [3]
