@@ -130,18 +130,18 @@ def setup_optimizer(gaussians, args, criterion=None):
     if args.use_sched:
         # Define a separate scheduler for each parameter group
         schedulers = {
-            #"opacities": torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=1e-6), #change quickly but stable later
-            #"scales": torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=5e-6), #adapt quickly but stable later, eta_min is larger because still need update in later training
-            #"colours": torch.optim.lr_scheduler.StepLR(optimizer, step_size=2500, gamma=0.5), #shouldn't change aggressively for fine-tuning
-            #"means": torch.optim.lr_scheduler.StepLR(optimizer, step_size=4000, gamma=0.3), #should be highly stable
-            "opacities": torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=2e-6), #change quickly but stable later
-            "scales": torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=9e-6), #adapt quickly but stable later, eta_min is larger because still need update in later training
-            "colours": torch.optim.lr_scheduler.StepLR(optimizer, step_size=3500, gamma=0.5), #shouldn't change aggressively for fine-tuning
-            "means": torch.optim.lr_scheduler.StepLR(optimizer, step_size=4500, gamma=0.3), #should be highly stable
+            "opacities": torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=1e-6), #change quickly but stable later
+            "scales": torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=5e-6), #adapt quickly but stable later, eta_min is larger because still need update in later training
+            "colours": torch.optim.lr_scheduler.StepLR(optimizer, step_size=2500, gamma=0.5), #shouldn't change aggressively for fine-tuning
+            "means": torch.optim.lr_scheduler.StepLR(optimizer, step_size=4000, gamma=0.3), #should be highly stable
+            #"opacities": torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=2e-6), #change quickly but stable later
+            #"scales": torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=9e-6), #adapt quickly but stable later, eta_min is larger because still need update in later training
+            #"colours": torch.optim.lr_scheduler.StepLR(optimizer, step_size=3500, gamma=0.5), #shouldn't change aggressively for fine-tuning
+            #"means": torch.optim.lr_scheduler.StepLR(optimizer, step_size=4500, gamma=0.3), #should be highly stable
         }
         if not gaussians.is_isotropic:
-            #schedulers["quats"] = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=1e-5)  # Full-length gradual updates, the slowest update for quats
-            schedulers["quats"] = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=2e-5)  # Full-length gradual updates, the slowest update for quats
+            schedulers["quats"] = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=1e-5)  # Full-length gradual updates, the slowest update for quats
+            #schedulers["quats"] = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=2e-5)  # Full-length gradual updates, the slowest update for quats
         return optimizer, schedulers
 
     return optimizer, None
@@ -166,7 +166,7 @@ def run_training(args):
 
     train_dataset, val_dataset, _ = get_nerf_datasets(
         dataset_name="materials", data_root=args.data_path,
-        image_size=[128, 128],
+        image_size=[args.img_size, args.img_size],
     )
     '''
     train_dataset = NeRFSyntheticDataset(
@@ -205,7 +205,7 @@ def run_training(args):
     gt_viz_imgs = [np.array(Image.fromarray(x).resize((256, 256))) for x in gt_viz_imgs]
     gt_viz_img = np.concatenate(gt_viz_imgs, axis=1)
 
-    viz_cameras = [ndc_to_screen_camera(train_dataset[i]["camera"]).cuda() for i in viz_idxs]
+    viz_cameras = [ndc_to_screen_camera(train_dataset[i]["camera"], img_size=(args.img_size, args.img_size)).cuda() for i in viz_idxs]
 
     # Init gaussians and scene
     gaussians = Gaussians(
@@ -262,7 +262,7 @@ def run_training(args):
         print("[Raw Camera] Camera Index :", data[0]["camera_idx"])
         '''
 
-        camera = ndc_to_screen_camera(data[0]["camera"]).cuda()
+        camera = ndc_to_screen_camera(data[0]["camera"], img_size=(args.img_size, args.img_size)).cuda()
 
         '''
         print("Camera R:", camera.R[0].cpu().numpy())
@@ -360,7 +360,7 @@ def run_training(args):
             ssim_accum = 0.0
             for val_data in val_loader:
                 gt_img = val_data[0]["image"].cuda()
-                camera = ndc_to_screen_camera(val_data[0]["camera"]).cuda()
+                camera = ndc_to_screen_camera(val_data[0]["camera"], img_size=(args.img_size, args.img_size)).cuda()
 
                 with torch.no_grad():
                     pred_img, _, _ = scene.render(
@@ -469,7 +469,7 @@ def run_training(args):
     )
     for viz_data in tqdm(viz_loader, desc="Creating Visualization"):
         gt_img = viz_data[0]["image"].cuda()
-        camera = ndc_to_screen_camera(viz_data[0]["camera"]).cuda()
+        camera = ndc_to_screen_camera(viz_data[0]["camera"], img_size=(args.img_size, args.img_size)).cuda()
 
         with torch.no_grad():
 
@@ -499,7 +499,7 @@ def run_training(args):
     for val_data in tqdm(val_loader, desc="Running Evaluation"):
 
         gt_img = val_data[0]["image"].cuda()
-        camera = ndc_to_screen_camera(val_data[0]["camera"]).cuda()
+        camera = ndc_to_screen_camera(val_data[0]["camera"], img_size=(args.img_size, args.img_size)).cuda()
 
         with torch.no_grad():
 

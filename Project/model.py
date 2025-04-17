@@ -588,6 +588,7 @@ class Scene:
         else:
             S = start_transmittance
 
+
         one_minus_alphas = 1.0 - alphas
         one_minus_alphas = torch.concat((S, one_minus_alphas), dim=0)  # (N+1, H, W)
 
@@ -683,7 +684,7 @@ class Scene:
         mask = torch.sum(alphas * transmittance, dim=0)   # (H, W, 1)
 
         final_transmittance = transmittance[-1, ..., 0].unsqueeze(0)  # (1, H, W)
-        final_transmittance = (final_transmittance*(1-alphas[-1, ..., 0])).unsqueeze(0) # (1, H, W) #Fix
+        final_transmittance = (final_transmittance.squeeze(0)*(1-alphas[-1, ..., 0])).unsqueeze(0) # (1, H, W) #Fix
         return image, depth, mask, final_transmittance
 
     def render(

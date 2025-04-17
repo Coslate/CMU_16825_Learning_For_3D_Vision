@@ -113,6 +113,7 @@ class ListDataset(Dataset):
 def get_nerf_datasets(
     dataset_name: str,  # 'lego | fern'
     image_size: Tuple[int, int],
+    few_views: int = 0,
     data_root: str = DEFAULT_DATA_ROOT,
     autodownload: bool = True,
 ) -> Tuple[Dataset, Dataset, Dataset]:
@@ -173,6 +174,8 @@ def get_nerf_datasets(
     ]
 
     train_idx, val_idx, test_idx = train_data["split"]
+    if few_views != 0:
+        train_idx = train_idx[:few_views] 
 
     train_dataset, val_dataset, test_dataset = [
         ListDataset(

@@ -87,7 +87,8 @@ def render_images(
     image_size,
     save=False,
     file_prefix='',
-    output_results_q1=True
+    output_results_q1=True,
+    return_np=True
 ):
     all_images = []
     device = list(model.parameters())[0].device
@@ -141,11 +142,17 @@ def render_images(
         out = model(ray_bundle)
 
         # Return rendered features (colors)
-        image = np.array(
-            out['feature'].view(
-                image_size[1], image_size[0], 3
-            ).detach().cpu()
-        )
+        if return_np:
+            image = np.array(
+                out['feature'].view(
+                    image_size[1], image_size[0], 3
+                ).detach().cpu()
+            )
+        else:
+            image = out['feature'].view(
+                    image_size[1], image_size[0], 3
+                    ).detach()
+
         all_images.append(image)
 
         # TODO (Q1.5): Visualize depth
@@ -517,7 +524,7 @@ def train_nerf(
     plt.plot(global_steps, val_interp,
          label="Validation Loss (Interpolated)", color="crimson", linestyle='--', alpha=0.5)
 
-    plt.xlabel("Steps")
+    plt.xlabel("Epochs")
     plt.ylabel("Loss")
     plt.title("Training/Validation Loss vs Epochs")
     plt.legend()

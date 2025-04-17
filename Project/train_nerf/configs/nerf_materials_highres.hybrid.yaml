@@ -6,8 +6,8 @@ data_path: ./data/materials
 #output_gif_file: ./images/part_4_1.nerf_materials_highres.gif
 #output_gif_file: ./images/part_4_1.nerf_materials_highres.use_views.gif
 #output_gif_file: ./training_result_20250412/images/nerf_materials_highres.use_views.gif
-#output_gif_file: ./train_nerf/training_result_20250414/images/nerf_materials_highres.use_views.gif
-output_gif_file: ./train_nerf/training_result_20250415/images/nerf_materials_highres.use_views.coarse_fine.gif
+output_gif_file: ./train_nerf/training_result_20250414/images/nerf_materials_highres.use_views.gif
+#output_gif_file: ./train_nerf/training_result_20250415/images/nerf_materials_highres.use_views.coarse_fine.gif
 #output_gif_file: ./images/part_4_2.nerf_materials_highres.use_views.gif
 #output_gif_file: ./images/part_4_2.nerf_materials_highres.use_views.use_coarse_fine.gif
 
@@ -31,8 +31,8 @@ training:
   #checkpoint_path: ./checkpoints.q4_1.nerf_materials_highres
   #checkpoint_path: ./checkpoints.q4_1.nerf_materials_highres.use_views
   #checkpoint_path: ./training_result_20250412/num_epochs3001_batch_size_1024_lr_1e-4_image_size128_views/checkpoints.nerf_materials_highres.use_views
-  #checkpoint_path: ./train_nerf/training_result_20250414/num_epochs3001_batch_size_512_lr_1e-4_image_size128_views_samplepts512/checkpoints.nerf_materials_highres.use_views
-  checkpoint_path: ./train_nerf/training_result_20250415/num_epochs3001_batch_size_512_lr_1e-4_image_size128_views_samplepts512/checkpoints.nerf_materials_highres.use_views.coarse_fine
+  checkpoint_path: ./train_nerf/training_result_20250414/num_epochs3001_batch_size_512_lr_1e-4_image_size128_views_samplepts512/checkpoints.nerf_materials_highres.use_views
+  #checkpoint_path: ./train_nerf/training_result_20250415/num_epochs3001_batch_size_512_lr_1e-4_image_size128_views_samplepts512/checkpoints.nerf_materials_highres.use_views.coarse_fine
   #checkpoint_path: ./checkpoints.q4_2.nerf_materials_highres.use_views
   #checkpoint_path: ./checkpoints.q4_2.nerf_materials_highres.use_views.use_coarse_fine
   checkpoint_interval: 300
