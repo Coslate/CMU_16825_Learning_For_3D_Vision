@@ -173,7 +173,7 @@ def visualize_hybrid_all_render(cfg, args):
     image_size = tuple(args.image_size)
 
     few_views = cfg.get("few_views", 0)
-    _, val_dataset, _ = get_nerf_datasets(
+    _, val_dataset, test_dataset = get_nerf_datasets(
         dataset_name=cfg.data.dataset_name,
         data_root=cfg.data_path,
         image_size=[cfg.data.image_size[1], cfg.data.image_size[0]],
@@ -182,6 +182,14 @@ def visualize_hybrid_all_render(cfg, args):
 
     val_dataloader = torch.utils.data.DataLoader(
         val_dataset,
+        batch_size=1,
+        shuffle=False,
+        num_workers=0,
+        collate_fn=trivial_collate,
+    )
+
+    test_dataloader = torch.utils.data.DataLoader(
+        test_dataset,
         batch_size=1,
         shuffle=False,
         num_workers=0,
@@ -212,7 +220,8 @@ def visualize_hybrid_all_render(cfg, args):
     time_gs, time_nerf = [], []
     time_hybrid_extract_feature, time_hybrid_render = [], []
 
-    for val_index, sample in enumerate(tqdm(val_dataloader)):
+    #for val_index, sample in enumerate(tqdm(val_dataloader)):
+    for val_index, sample in enumerate(tqdm(test_dataloader)):
         # -------------------Rendering-----------------------#
         gt_image = sample[0]["image"].cuda()
         camera_ndc = sample[0]["camera"].cuda()
@@ -342,7 +351,8 @@ def visualize_hybrid_all_render(cfg, args):
             plt.savefig(os.path.join(args.out_path, f"{base}_uncertainty_vs_mask.png"), dpi=300)
             plt.close(fig_debug)    
 
-    num = len(val_dataloader)
+    #num = len(val_dataloader)
+    num = len(test_dataloader)
     print("=== Average Metrics ===")
     print(f"GS      - PSNR: {psnr_gs_total/num:.2f}, SSIM: {ssim_gs_total/num:.4f}, Time/frame: {np.mean(time_gs):.3f}s")
     print(f"NeRF    - PSNR: {psnr_nerf_total/num:.2f}, SSIM: {ssim_nerf_total/num:.4f}, Time/frame: {np.mean(time_nerf):.3f}s")
