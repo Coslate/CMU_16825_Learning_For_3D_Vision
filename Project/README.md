@@ -57,7 +57,7 @@ CUDA_VISIBLE_DEVICES=2 python -m train_nerf.volume_rendering_main \
 ```bash
 CUDA_VISIBLE_DEVICES=4 python train_gs.py \
     --data_path ./data/materials/ \
-    --img_size 256 \
+    --img_size 128 \
     --num_itrs 5001 \
     --viz_freq 100 \
     --init_random_numpoints 15000 \
@@ -119,7 +119,7 @@ bash run_hybrid_render.sh
 
 We also provide a project summary poster in the `docs/` folder:
 
-📄 [`CMU_16825_Final_Project_Poster_After_Crop0.5Inch.pdf`](./docs/CMU_16825_Final_Project_Poster.pdf)
+> 📄 [Project Poster (PDF)](./doc/CMU_16825_Final_Project_Poster.pdf)
 
 ---
 
