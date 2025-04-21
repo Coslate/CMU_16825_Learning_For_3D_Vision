@@ -1,6 +1,6 @@
 
+# Uncertainty-Aware Hybrid Rendering with Gaussian Splatting and NeRF for High-Fidelity Synthesis
 
-> **Project Title**: *Uncertainty-Aware Hybrid Rendering with Gaussian Splatting and NeRF for High-Fidelity Synthesis*  
 > **Author**: Patrick Chen  
 > **Course**: 16-825 Learning for 3D Vision, Carnegie Mellon University  
 > 📄 [View Project Poster (PDF)](./doc/CMU_16825_Final_Project_Poster.pdf)
