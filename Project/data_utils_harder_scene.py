@@ -166,6 +166,12 @@ def get_nerf_datasets(
             mode="bilinear",
         ).permute(0, 2, 3, 1)
 
+    '''
+    for cami in range(n_cameras):
+        for k, v in train_data['cameras'].items():
+            print(f"k = {k}, value = {v[cami][None]}")
+    '''
+
     cameras = [
         PerspectiveCameras(
             **{k: v[cami][None] for k, v in train_data["cameras"].items()}

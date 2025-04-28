@@ -131,7 +131,7 @@ def render_hybrid(scene, model, unc_model, base, args, cfg):
                                 bg_colour=(0.0, 0.0, 0.0)
                             )
 
-            features = extract_features(scene, camera_i, args, img_size=image_size)
+            features, timing = extract_features(scene, camera_i, args, img_size=image_size, time_profiling=True)
             if args.use_tiny_unet:
                 pred_uncertainty = predict_uncertainty_map(unc_model, features)
             else:
@@ -219,6 +219,19 @@ def visualize_hybrid_all_render(cfg, args):
     psnr_gs_total, psnr_nerf_total, psnr_hybrid_total = 0, 0, 0
     time_gs, time_nerf = [], []
     time_hybrid_extract_feature, time_hybrid_render = [], []
+    time_alpha = []
+    time_color = []
+    time_footprint = []
+    time_viewdir = []
+    time_feat = []
+    time_proj_gau = []
+    time_gau_act = []
+    time_depth_sorting = []
+    time_depth_compute = []
+    time_forward = []
+    time_flat = []
+    time_topk = []
+    time_mask = []
 
     #for val_index, sample in enumerate(tqdm(val_dataloader)):
     for val_index, sample in enumerate(tqdm(test_dataloader)):
@@ -242,25 +255,43 @@ def visualize_hybrid_all_render(cfg, args):
         time_nerf.append(time.time() - start)
 
         # Hybrid render
+        start_init = time.time()
         start = time.time()
-        features = extract_features(scene, camera_screen, args, img_size=image_size)
+        features, timing = extract_features(scene, camera_screen, args, img_size=image_size, time_profiling=True)
+        time_feat.append(time.time() - start)
 
+        start = time.time()
         if args.use_tiny_unet:
             pred_uncertainty = predict_uncertainty_map(unc_model, features)
         else:
             pred_uncertainty = unc_model(features.view(-1, 4)).view(H, W) #(H, W)
+        time_forward.append(time.time() - start)
 
+        start = time.time()
         unc_flat = pred_uncertainty.view(-1)
+        time_flat.append(time.time() - start)
 
         # Get top-k indices and values
+        start = time.time()
         k = int(args.threshold * unc_flat.numel())
         topk_vals, topk_idxs = torch.topk(unc_flat, k=k, largest=True, sorted=False)
+        time_topk.append(time.time() - start)
 
         # Create mask directly from top-k indices
+        start = time.time()
         flat_mask = torch.zeros_like(unc_flat, dtype=torch.bool)
         flat_mask[topk_idxs] = True
         mask = flat_mask.view(pred_uncertainty.shape)  # reshape to [H, W]
-        time_hybrid_extract_feature.append(time.time() - start)        
+        time_mask.append(time.time() - start)
+        time_hybrid_extract_feature.append(time.time() - start_init)
+        time_alpha.append(timing['alpha_sum_time'])
+        time_color.append(timing['color_var_time'])
+        time_footprint.append(timing['footprint_time'])
+        time_viewdir.append(timing['view_direction_time'])
+        time_proj_gau.append(timing['proj_gau_time'])
+        time_gau_act.append(timing['gau_act_time'])
+        time_depth_sorting.append(timing['depth_sorting_time'])
+        time_depth_compute.append(timing['depth_compute_time'])
 
         # Re-generate rays only on masked pixels for hybrid render
         hybrid = gs_img.clone().view(-1, 3)
@@ -319,14 +350,56 @@ def visualize_hybrid_all_render(cfg, args):
             ssim_error = compute_ssim_error_map(gs_img, gt_image)
             ssim_error_np = ssim_error.detach().cpu().numpy()
             ssim_error_vis = (ssim_error_np*255).astype(np.uint8)
+            mask_vis = mask.cpu().numpy().astype(np.uint8) * 255
 
-            fig, axes = plt.subplots(2, 3, figsize=(14, 14))
-            axes[0, 0].imshow(gt_vis); axes[0, 0].set_title("Ground Truth")
-            axes[0, 1].imshow(gs_vis); axes[0, 1].set_title("GS Prediction")
-            axes[0, 2].imshow(nerf_vis); axes[0, 2].set_title("NeRF Prediction")
-            axes[1, 0].imshow(ssim_error_vis, cmap='magma'); axes[1, 0].set_title("SSIM Error Map")
-            axes[1, 1].imshow(pred_uncertainty_vis, cmap='magma'); axes[1, 1].set_title("Predicted Uncertainty")
-            axes[1, 2].imshow(hybrid_vis); axes[1, 2].set_title("Hybrid Render")
+
+            # === Save each image individually ===
+            base = f"val{val_index:03d}"
+            os.makedirs((os.path.join(args.out_path, f"cam_view_val_index_{base}")), exist_ok=True)
+
+            plt.imsave(os.path.join(args.out_path, f"cam_view_val_index_{base}", f"{base}_gt.png"), gt_vis)
+            plt.imsave(os.path.join(args.out_path, f"cam_view_val_index_{base}", f"{base}_gs_pred.png"), gs_vis)
+            plt.imsave(os.path.join(args.out_path, f"cam_view_val_index_{base}", f"{base}_nerf_pred.png"), nerf_vis)
+            plt.imsave(os.path.join(args.out_path, f"cam_view_val_index_{base}", f"{base}_ssim_error.png"), ssim_error_vis, cmap='magma')
+            plt.imsave(os.path.join(args.out_path, f"cam_view_val_index_{base}", f"{base}_pred_uncertainty.png"), pred_uncertainty_vis, cmap='magma')
+            plt.imsave(os.path.join(args.out_path, f"cam_view_val_index_{base}", f"{base}_mask_threshold.png"), mask_vis, cmap='gray')
+            plt.imsave(os.path.join(args.out_path, f"cam_view_val_index_{base}", f"{base}_hybrid_render.png"), hybrid_vis)
+            plt.imsave(os.path.join(args.out_path, f"cam_view_val_index_{base}", f"{base}_gs_depth.png"), gs_depth_vis, cmap='magma')
+            plt.imsave(os.path.join(args.out_path, f"cam_view_val_index_{base}", f"{base}_nerf_depth.png"), nerf_depth_vis, cmap='magma')
+
+            # === Save debug comparison: Predicted Uncertainty vs Mask (optional) ===
+            fig_debug, debug_axes = plt.subplots(1, 2, figsize=(8, 6))
+            debug_axes[0].imshow(pred_uncertainty_vis, cmap='magma')
+            debug_axes[0].set_title("Predicted Uncertainty", fontsize=14)
+            debug_axes[0].axis('off')
+            debug_axes[1].imshow(mask_vis, cmap='gray')
+            debug_axes[1].set_title("Mask After Thresholding", fontsize=14)
+            debug_axes[1].axis('off')
+            plt.tight_layout()
+            plt.savefig(os.path.join(args.out_path, f"cam_view_val_index_{base}", f"{base}_uncertainty_vs_mask.png"), dpi=300)
+            plt.close(fig_debug)            
+
+            '''
+            fig, axes = plt.subplots(2, 4, figsize=(16, 14))
+            # ====== Top row (row 0) ======
+            axes[0, 0].axis('off')  # Empty
+            axes[0, 1].imshow(gt_vis)
+            axes[0, 1].set_title("Ground Truth")
+            axes[0, 2].imshow(gs_vis)
+            axes[0, 2].set_title("GS Prediction")
+            axes[0, 3].imshow(nerf_vis)
+            axes[0, 3].set_title("NeRF Prediction")
+
+            # ====== Bottom row (row 1) ======
+            axes[1, 0].imshow(ssim_error_vis, cmap='magma')
+            axes[1, 0].set_title("SSIM Error Map")
+            axes[1, 1].imshow(pred_uncertainty_vis, cmap='magma')
+            axes[1, 1].set_title("Predicted Uncertainty")
+            axes[1, 2].imshow(mask_vis, cmap='gray')
+            axes[1, 2].set_title("Mask After Thresholding")
+            axes[1, 3].imshow(hybrid_vis)
+            axes[1, 3].set_title("Hybrid Render")            
+
             for ax in axes.flat: ax.axis('off')
             plt.tight_layout()
 
@@ -339,7 +412,6 @@ def visualize_hybrid_all_render(cfg, args):
             plt.close()
 
             # === Optional Debug Plot: Predicted Uncertainty vs Mask ===
-            mask_vis = mask.cpu().numpy().astype(np.uint8) * 255
             fig_debug, debug_axes = plt.subplots(1, 2, figsize=(8, 6))
             debug_axes[0].imshow(pred_uncertainty_vis, cmap='magma')
             debug_axes[0].set_title("Predicted Uncertainty", fontsize=14)
@@ -350,6 +422,7 @@ def visualize_hybrid_all_render(cfg, args):
             plt.tight_layout()
             plt.savefig(os.path.join(args.out_path, f"{base}_uncertainty_vs_mask.png"), dpi=300)
             plt.close(fig_debug)    
+            '''
 
     #num = len(val_dataloader)
     num = len(test_dataloader)
@@ -357,6 +430,22 @@ def visualize_hybrid_all_render(cfg, args):
     print(f"GS      - PSNR: {psnr_gs_total/num:.2f}, SSIM: {ssim_gs_total/num:.4f}, Time/frame: {np.mean(time_gs):.3f}s")
     print(f"NeRF    - PSNR: {psnr_nerf_total/num:.2f}, SSIM: {ssim_nerf_total/num:.4f}, Time/frame: {np.mean(time_nerf):.3f}s")
     print(f"Hybrid  - PSNR: {psnr_hybrid_total/num:.2f}, SSIM: {ssim_hybrid_total/num:.4f}, Time/frame-extract_feature: {np.mean(time_hybrid_extract_feature):.3f}s, Time/frame-render: {np.mean(time_hybrid_render):.3f}s")
+    print(f"Breakdown for Time/frame-extract_feature:")
+    print(f"Time/frame-feat: {np.mean(time_feat):.3f}s")
+    print(f"|")
+    print(f"--Time/frame-proj_gau: {np.mean(time_proj_gau):.3f}s")
+    print(f"--Time/frame-gau_act: {np.mean(time_gau_act):.3f}s")
+    print(f"--Time/frame-depth_sorting: {np.mean(time_depth_sorting):.3f}s")
+    print(f"--Time/frame-depth_compute: {np.mean(time_depth_compute):.3f}s")
+    print(f"--Time/frame-alpha_sum: {np.mean(time_alpha):.3f}s")
+    print(f"--Time/frame-color_variance: {np.mean(time_color):.3f}s")
+    print(f"--Time/frame-footprint_area: {np.mean(time_footprint):.3f}s")
+    print(f"--Time/frame-view_direction: {np.mean(time_viewdir):.3f}s")
+    print(f"Time/frame-forward: {np.mean(time_forward):.3f}s")
+    print(f"Time/frame-flat: {np.mean(time_flat):.3f}s")
+    print(f"Time/frame-topk: {np.mean(time_topk):.3f}s")
+    print(f"Time/frame-mask: {np.mean(time_mask):.3f}s")
+    print(f"")
 
     os.makedirs(args.out_path, exist_ok=True)
     base = f"val"

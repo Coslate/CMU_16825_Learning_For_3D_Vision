@@ -1,4 +1,5 @@
 import os
+import time
 import torch
 import numpy as np
 from tqdm import tqdm
@@ -61,10 +62,20 @@ def ndc_to_screen_camera(camera, img_size = (128, 128)):
         image_size=(img_size,),
     )
 
-def extract_features(scene, camera, args, img_size=(128, 128)):
+def extract_features(scene, camera, args, img_size=(128, 128), time_profiling=False):
+    if time_profiling:
+        timings = {}  # Dictionary to store extraction time for each feature
+
     #Depth sorting
+    if time_profiling:
+        start_depth_sorting = time.time()
     z_vals = scene.compute_depth_values(camera)
+    if time_profiling:
+        timings['depth_compute_time'] = time.time() - start_depth_sorting
+        start_depth_sorting = time.time()
     idxs = scene.get_idxs_to_filter_and_sort(z_vals)
+    if time_profiling:
+        timings['depth_sorting_time'] = time.time() - start_depth_sorting
 
     #Select & activate Gaussians
     means_3D = scene.gaussians.means[idxs]
@@ -72,18 +83,32 @@ def extract_features(scene, camera, args, img_size=(128, 128)):
     scales = scene.gaussians.pre_act_scales[idxs]
     opacities = scene.gaussians.pre_act_opacities[idxs]
     colours = scene.gaussians.colours[idxs]
+    if time_profiling:
+        start_gau_act = time.time()
     quats, scales, opacities = scene.gaussians.apply_activations(quats, scales, opacities)
+    if time_profiling:
+        timings['gau_act_time'] = time.time() - start_gau_act
 
     #Project to 2D views
+    if time_profiling:
+        start_proj_gau = time.time()
     view_dirs = scene.calculate_gaussian_directions(means_3D, camera) #(N, 3)
     cov_2D = scene.gaussians.compute_cov_2D(means_3D, quats, scales, camera, img_size)
+    if time_profiling:
+        timings['proj_gau_time'] = time.time() - start_proj_gau
 
     #Compute alpha(visibility) map
+    if time_profiling:
+        start_alpha = time.time()
     alphas = scene.compute_alphas(opacities, scene.gaussians.compute_means_2D(means_3D, camera), cov_2D, img_size) #(N, H, W)
     trans = scene.compute_transmittance(alphas) #(N, H, W)
     alpha_sum = torch.sum(alphas, dim=0) #(H, W)
+    if time_profiling:
+        timings['alpha_sum_time'] = time.time() - start_alpha
 
     #Compute color variance map
+    if time_profiling:
+        start_color_var = time.time()
     weights = (alphas * trans).unsqueeze(-1) #(N, H, W, 1)
     colours_exp = colours[:, None, None, :] #(N, 1, 1, 3)
     weighted_color = (weights * colours_exp).sum(0) #(H, W, 3)
@@ -101,15 +126,28 @@ def extract_features(scene, camera, args, img_size=(128, 128)):
         weight_accum += w_chunk.sum(0)
     color_var = (color_var_accum / (weight_accum + 1e-6)).mean(-1)  # (H, W)    
     #color_var = ((weights * (colours_exp - mean_color[None])**2).sum(0) / (weights.sum(0) + 1e-6)).mean(-1) #(H, W)
+    if time_profiling:
+        timings['color_var_time'] = time.time() - start_color_var
 
     #Compute weighted footprint size map
+    if time_profiling:
+        start_footprint = time.time()
     det_cov = cov_2D[:, 0, 0] * cov_2D[:, 1, 1] - cov_2D[:, 0, 1] * cov_2D[:, 1, 0] #(N,)
     det_map = torch.sum(alphas * det_cov[:, None, None], dim=0) / (alpha_sum + 1e-6)
+    if time_profiling:
+        timings['footprint_time'] = time.time() - start_footprint
 
+    # Compute view direction feature
+    if time_profiling:
+        start_viewdir = time.time()
     view_angle_cos = view_dirs[:, 2]
     view_map = torch.sum(alphas * view_angle_cos[:, None, None], dim=0) / (alpha_sum + 1e-6)
     feat_map = torch.stack([alpha_sum, color_var, det_map, view_map], dim=-1) #(H, W, 4)
-    return feat_map
+    if time_profiling:
+        timings['view_direction_time'] = time.time() - start_viewdir
+        return feat_map, timings
+    else:
+        return feat_map
 
 def visualize_prediction(gt_img, pred_img, ssim_error, uncertainty_map, out_dir, step, args):
     gt = (gt_img.detach().cpu().numpy() * 255).astype(np.uint8)
