@@ -1,0 +1,66 @@
+cfg.sampler.type = coarse_fine
+cfg.sampler.use_fine_sampling = True
+cfg.sampler.n_coarse_pts_per_ray= 256
+cfg.sampler.n_fine_pts_per_ray = 150
+Loading dataset materials, image size=[128, 128] ...
+Rescaling dataset (factor=0.16)
+Resuming from checkpoint /home/patrick/CMU_16825_Learning_for_3D_Vision/CMU_16825_Learning_For_3D_Vision/Project/train_nerf/training_result_20250414/num_epochs3001_batch_size_512_lr_1e-4_image_size128_views_samplepts512/checkpoints.nerf_materials_highres.use_views.
+   => resuming from epoch 3000.
+[Val 0] SSIM - GS: 0.7307, Hybrid: 0.8289
+[Val 0] PSNR - GS: 19.94, Hybrid: 21.93
+[Val 20] SSIM - GS: 0.7645, Hybrid: 0.8435
+[Val 20] PSNR - GS: 20.85, Hybrid: 22.52
+[Val 40] SSIM - GS: 0.8035, Hybrid: 0.8586
+[Val 40] PSNR - GS: 22.29, Hybrid: 23.66
+[Val 60] SSIM - GS: 0.8363, Hybrid: 0.8875
+[Val 60] PSNR - GS: 22.73, Hybrid: 24.68
+[Val 80] SSIM - GS: 0.8587, Hybrid: 0.9112
+[Val 80] PSNR - GS: 24.11, Hybrid: 26.24
+[Val 99] SSIM - GS: 0.8484, Hybrid: 0.9231
+[Val 99] PSNR - GS: 22.01, Hybrid: 24.94
+=== Average Metrics ===
+GS      - PSNR: 22.23, SSIM: 0.8186, Time/frame: 0.221s
+NeRF    - PSNR: 24.76, SSIM: 0.8914, Time/frame: 0.804s
+Hybrid  - PSNR: 24.11, SSIM: 0.8801, Time/frame-extract_feature: 1.394s, Time/frame-render: 0.655s
+Rendering image 0
+Rendering image 1
+Rendering image 2
+Rendering image 3
+Rendering image 4
+Rendering image 5
+Rendering image 6
+Rendering image 7
+Rendering image 8
+Rendering image 9
+Rendering image 10
+Rendering image 11
+Rendering image 12
+Rendering image 13
+Rendering image 14
+Rendering image 15
+Rendering image 16
+Rendering image 17
+Rendering image 18
+Rendering image 19
+Rendering image 0
+Rendering image 1
+Rendering image 2
+Rendering image 3
+Rendering image 4
+Rendering image 5
+Rendering image 6
+Rendering image 7
+Rendering image 8
+Rendering image 9
+Rendering image 10
+Rendering image 11
+Rendering image 12
+Rendering image 13
+Rendering image 14
+Rendering image 15
+Rendering image 16
+Rendering image 17
+Rendering image 18
+Rendering image 19
+Hybrid GS-NeRF replacement rate: 30.00%
+new/test re-rerun w/ tiny unet

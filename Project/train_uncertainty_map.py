@@ -68,14 +68,23 @@ def extract_features(scene, camera, args, img_size=(128, 128), time_profiling=Fa
 
     #Depth sorting
     if time_profiling:
-        start_depth_sorting = time.time()
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+        start_event.record()
     z_vals = scene.compute_depth_values(camera)
     if time_profiling:
-        timings['depth_compute_time'] = time.time() - start_depth_sorting
-        start_depth_sorting = time.time()
+        end_event.record()
+        torch.cuda.synchronize()  # Wait for any previous GPU ops to finish
+        timings['depth_compute_time'] = start_event.elapsed_time(end_event) / 1000.0  # milliseconds -> seconds
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+        start_event.record()
     idxs = scene.get_idxs_to_filter_and_sort(z_vals)
+
     if time_profiling:
-        timings['depth_sorting_time'] = time.time() - start_depth_sorting
+        end_event.record()
+        torch.cuda.synchronize()  # Wait for any previous GPU ops to finish
+        timings['depth_sorting_time'] = start_event.elapsed_time(end_event) / 1000.0  # milliseconds -> seconds
 
     #Select & activate Gaussians
     means_3D = scene.gaussians.means[idxs]
@@ -84,31 +93,45 @@ def extract_features(scene, camera, args, img_size=(128, 128), time_profiling=Fa
     opacities = scene.gaussians.pre_act_opacities[idxs]
     colours = scene.gaussians.colours[idxs]
     if time_profiling:
-        start_gau_act = time.time()
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+        start_event.record()
     quats, scales, opacities = scene.gaussians.apply_activations(quats, scales, opacities)
     if time_profiling:
-        timings['gau_act_time'] = time.time() - start_gau_act
+        end_event.record()
+        torch.cuda.synchronize()  # Wait for any previous GPU ops to finish
+        timings['gau_act_time'] = start_event.elapsed_time(end_event) / 1000.0  # milliseconds -> seconds
 
     #Project to 2D views
     if time_profiling:
-        start_proj_gau = time.time()
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+        start_event.record()
     view_dirs = scene.calculate_gaussian_directions(means_3D, camera) #(N, 3)
     cov_2D = scene.gaussians.compute_cov_2D(means_3D, quats, scales, camera, img_size)
     if time_profiling:
-        timings['proj_gau_time'] = time.time() - start_proj_gau
+        end_event.record()
+        torch.cuda.synchronize()  # Wait for any previous GPU ops to finish
+        timings['proj_gau_time'] = start_event.elapsed_time(end_event) / 1000.0  # milliseconds -> seconds
 
     #Compute alpha(visibility) map
     if time_profiling:
-        start_alpha = time.time()
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+        start_event.record()
     alphas = scene.compute_alphas(opacities, scene.gaussians.compute_means_2D(means_3D, camera), cov_2D, img_size) #(N, H, W)
     trans = scene.compute_transmittance(alphas) #(N, H, W)
     alpha_sum = torch.sum(alphas, dim=0) #(H, W)
     if time_profiling:
-        timings['alpha_sum_time'] = time.time() - start_alpha
+        end_event.record()
+        torch.cuda.synchronize()  # Wait for any previous GPU ops to finish
+        timings['alpha_sum_time'] = start_event.elapsed_time(end_event) / 1000.0  # milliseconds -> seconds
 
     #Compute color variance map
     if time_profiling:
-        start_color_var = time.time()
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+        start_event.record()
     weights = (alphas * trans).unsqueeze(-1) #(N, H, W, 1)
     colours_exp = colours[:, None, None, :] #(N, 1, 1, 3)
     weighted_color = (weights * colours_exp).sum(0) #(H, W, 3)
@@ -127,24 +150,34 @@ def extract_features(scene, camera, args, img_size=(128, 128), time_profiling=Fa
     color_var = (color_var_accum / (weight_accum + 1e-6)).mean(-1)  # (H, W)    
     #color_var = ((weights * (colours_exp - mean_color[None])**2).sum(0) / (weights.sum(0) + 1e-6)).mean(-1) #(H, W)
     if time_profiling:
-        timings['color_var_time'] = time.time() - start_color_var
+        end_event.record()
+        torch.cuda.synchronize()  # Wait for any previous GPU ops to finish
+        timings['color_var_time'] = start_event.elapsed_time(end_event) / 1000.0  # milliseconds -> seconds
 
     #Compute weighted footprint size map
     if time_profiling:
-        start_footprint = time.time()
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+        start_event.record()
     det_cov = cov_2D[:, 0, 0] * cov_2D[:, 1, 1] - cov_2D[:, 0, 1] * cov_2D[:, 1, 0] #(N,)
     det_map = torch.sum(alphas * det_cov[:, None, None], dim=0) / (alpha_sum + 1e-6)
     if time_profiling:
-        timings['footprint_time'] = time.time() - start_footprint
+        end_event.record()
+        torch.cuda.synchronize()  # Wait for any previous GPU ops to finish
+        timings['footprint_time'] = start_event.elapsed_time(end_event) / 1000.0  # milliseconds -> seconds
 
     # Compute view direction feature
     if time_profiling:
-        start_viewdir = time.time()
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+        start_event.record()
     view_angle_cos = view_dirs[:, 2]
     view_map = torch.sum(alphas * view_angle_cos[:, None, None], dim=0) / (alpha_sum + 1e-6)
     feat_map = torch.stack([alpha_sum, color_var, det_map, view_map], dim=-1) #(H, W, 4)
     if time_profiling:
-        timings['view_direction_time'] = time.time() - start_viewdir
+        end_event.record()
+        torch.cuda.synchronize()  # Wait for any previous GPU ops to finish
+        timings['view_direction_time'] = start_event.elapsed_time(end_event) / 1000.0  # milliseconds -> seconds
         return feat_map, timings
     else:
         return feat_map

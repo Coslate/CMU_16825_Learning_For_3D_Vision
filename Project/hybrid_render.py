@@ -241,49 +241,102 @@ def visualize_hybrid_all_render(cfg, args):
         camera_screen = ndc_to_screen_camera(camera_ndc).cuda()
 
         # GS render
-        start = time.time()
+        #start = time.time()
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+
+        start_event.record()
         gs_img, gs_depth, _ = scene.render(camera_screen, per_splat=-1, img_size=image_size, bg_colour=(0, 0, 0))
-        time_gs.append(time.time() - start)
+        end_event.record()
+
+        torch.cuda.synchronize()  # Wait for render to complete
+        elapsed_time_gs = start_event.elapsed_time(end_event) / 1000.0  # milliseconds -> seconds
+        time_gs.append(elapsed_time_gs)
 
         # NeRF render
-        start = time.time()
+        #start = time.time()
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+
+        start_event.record()
         H, W = image_size
         xy_grid = get_pixels_from_image(image_size, camera_ndc)
         ray_bundle = get_rays_from_pixels(xy_grid, image_size, camera_ndc)
         out = model(ray_bundle)
         nerf_img = out["feature_fine"].reshape(H, W, 3) if "feature_fine" in out else out["feature"].reshape(H, W, 3)
-        time_nerf.append(time.time() - start)
+        end_event.record()
+
+        torch.cuda.synchronize()  # Wait for NeRF render to complete
+        elapsed_time_nerf = start_event.elapsed_time(end_event) / 1000.0  # milliseconds -> seconds
+        time_nerf.append(elapsed_time_nerf)
 
         # Hybrid render
-        start_init = time.time()
-        start = time.time()
+        #start_init = time.time()
+        #start = time.time()
+        start_event_init = torch.cuda.Event(enable_timing=True)
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+        start_event.record()
+        start_event_init.record()
         features, timing = extract_features(scene, camera_screen, args, img_size=image_size, time_profiling=True)
-        time_feat.append(time.time() - start)
+        end_event.record()
+        
+        torch.cuda.synchronize()  # Wait for any previous GPU ops to finish
+        elapsed_time_feat = start_event.elapsed_time(end_event) / 1000.0  # milliseconds -> seconds
+        time_feat.append(elapsed_time_feat)
 
-        start = time.time()
+        # model forward
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+        start_event.record()
         if args.use_tiny_unet:
             pred_uncertainty = predict_uncertainty_map(unc_model, features)
         else:
             pred_uncertainty = unc_model(features.view(-1, 4)).view(H, W) #(H, W)
-        time_forward.append(time.time() - start)
+        end_event.record()
 
-        start = time.time()
+        torch.cuda.synchronize()  # Wait for any previous GPU ops to finish
+        elapsed_time_forward = start_event.elapsed_time(end_event) / 1000.0  # milliseconds -> seconds
+        time_forward.append(elapsed_time_forward)
+
+        # uncertainty flat
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+        start_event.record()
         unc_flat = pred_uncertainty.view(-1)
-        time_flat.append(time.time() - start)
+        end_event.record()
+
+        torch.cuda.synchronize()  # Wait for any previous GPU ops to finish
+        elapsed_time_flat = start_event.elapsed_time(end_event) / 1000.0  # milliseconds -> seconds
+        time_flat.append(elapsed_time_flat)
 
         # Get top-k indices and values
-        start = time.time()
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+        start_event.record()
         k = int(args.threshold * unc_flat.numel())
         topk_vals, topk_idxs = torch.topk(unc_flat, k=k, largest=True, sorted=False)
-        time_topk.append(time.time() - start)
+        end_event.record()
+
+        torch.cuda.synchronize()  # Wait for any previous GPU ops to finish
+        elapsed_time_topk = start_event.elapsed_time(end_event) / 1000.0  # milliseconds -> seconds
+        time_topk.append(elapsed_time_topk)
 
         # Create mask directly from top-k indices
-        start = time.time()
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event_init = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+        start_event.record()
         flat_mask = torch.zeros_like(unc_flat, dtype=torch.bool)
         flat_mask[topk_idxs] = True
         mask = flat_mask.view(pred_uncertainty.shape)  # reshape to [H, W]
-        time_mask.append(time.time() - start)
-        time_hybrid_extract_feature.append(time.time() - start_init)
+
+        end_event.record()
+        end_event_init.record()
+        torch.cuda.synchronize()  # Wait for any previous GPU ops to finish
+        elapsed_time_mask = start_event.elapsed_time(end_event) / 1000.0  # milliseconds -> seconds
+        time_mask.append(elapsed_time_mask)
+        time_hybrid_extract_feature.append(start_event_init.elapsed_time(end_event_init) / 1000.0)
         time_alpha.append(timing['alpha_sum_time'])
         time_color.append(timing['color_var_time'])
         time_footprint.append(timing['footprint_time'])
@@ -295,7 +348,9 @@ def visualize_hybrid_all_render(cfg, args):
 
         # Re-generate rays only on masked pixels for hybrid render
         hybrid = gs_img.clone().view(-1, 3)
-        start = time.time()
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+        start_event.record()
         xy_all = get_pixels_from_image(image_size, camera_ndc)
         mask_indices = mask.view(-1).nonzero(as_tuple=False).squeeze(1).to(xy_all.device)
         xy_selected = xy_all[mask_indices]
@@ -306,7 +361,10 @@ def visualize_hybrid_all_render(cfg, args):
             hybrid[mask.view(-1)] = nerf_selected
         else:
             print(f"No high-uncertainty pixels selected - skipped NeRF fall back for this frame.")
-        time_hybrid_render.append(time.time() - start + time_gs[-1])
+        end_event.record()
+        torch.cuda.synchronize()  # Wait for any previous GPU ops to finish
+        elapsed_time_render = start_event.elapsed_time(end_event) / 1000.0  # milliseconds -> seconds
+        time_hybrid_render.append(elapsed_time_render)
 
         # -------------------Evaluate-----------------------#
         gt_np = gt_image.detach().cpu().numpy()
