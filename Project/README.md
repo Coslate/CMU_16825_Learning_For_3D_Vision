@@ -5,6 +5,7 @@
 > **Course**: 16-825 Learning for 3D Vision, Carnegie Mellon University  
 > 📄 [View Project Poster (PDF)](./doc/CMU_16825_Final_Project_Poster.pdf)\
 > 📄 [View Project Webpage](https://www.andrew.cmu.edu/course/16-825/projects/bochunc/final_proj/)
+> 📄 [View Project Final Report](./doc/Final_Report/16_825_Project_Final_Report_Team25.pdf)
 
 
 This project implements a hybrid rendering system that combines the speed of **3D Gaussian Splatting (GS)** and the high fidelity of **NeRF**, guided by a per-pixel uncertainty map to selectively render high-uncertainty regions using NeRF.
@@ -130,3 +131,10 @@ We also provide a project webpage for better visualization:
 
  > 📄 [Project Webpage](https://www.andrew.cmu.edu/course/16-825/projects/bochunc/final_proj/)
 
+---
+
+## Final Report
+
+We also provide a project final report for explaning everything in details:
+
+ > 📄 [View Project Final Report](./doc/Final_Report/16_825_Project_Final_Report_Team25.pdf)
