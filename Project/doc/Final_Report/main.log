@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (MiKTeX 24.1) (preloaded format=pdflatex 2024.9.5)  30 APR 2025 02:12
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (MiKTeX 24.1) (preloaded format=pdflatex 2024.9.5)  30 APR 2025 02:28
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -659,8 +659,8 @@ LaTeX Font Info:    Trying to load font information for OT1+pcr on input line 4
 (C:\Users\Patrick Chen\AppData\Local\Programs\MiKTeX\tex/latex/psnfss\ot1pcr.fd
 File: ot1pcr.fd 2001/06/04 font definitions for OT1/pcr.
 )
-Overfull \hbox (17.4744pt too wide) in paragraph at lines 50--52
-\OT1/ptm/b/n/10 Project Web-site: [][]$\OT1/pcr/m/n/10 https : / / www . andrew
+Overfull \hbox (23.03459pt too wide) in paragraph at lines 50--52
+\OT1/ptm/b/n/10 Project Web-page: [][]$\OT1/pcr/m/n/10 https : / / www . andrew
  . cmu . edu / course / 16-[]825 / projects / bochunc / final _ proj/$[][] 
  []
 
@@ -791,7 +791,7 @@ en/AppData/Local/Programs/MiKTeX/fonts/type1/urw/courier/ucrr8a.pfb><C:/Users/P
 atrick Chen/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmb8a.pfb><C:/
 Users/Patrick Chen/AppData/Local/Programs/MiKTeX/fonts/type1/urw/times/utmr8a.p
 fb>
-Output written on main.pdf (8 pages, 5798418 bytes).
+Output written on main.pdf (8 pages, 5798416 bytes).
 PDF statistics:
  175 PDF objects out of 1000 (max. 8388607)
  43 named destinations out of 1000 (max. 500000)
