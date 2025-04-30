@@ -5,14 +5,11 @@ Reallocating 'name_of_file' (item size: 1) to 6 items.
 The style file: plain.bst
 I found no \bibdata command---while reading file main.aux
 Warning--I didn't find a database entry for "mildenhall2020nerf"
-Warning--I didn't find a database entry for "barron2021mipnerf"
 Warning--I didn't find a database entry for "kerbl2023gaussians"
-Warning--I didn't find a database entry for "muller2022instantngp"
-Warning--I didn't find a database entry for "yu2021plenoptrees"
-Warning--I didn't find a database entry for "yeshwanthliu2023scannetpp"
+Warning--I didn't find a database entry for "barron2021mipnerf"
 You've used 0 entries,
             2118 wiz_defined-function locations,
-            502 strings with 4096 characters,
+            499 strings with 4034 characters,
 and the built_in function-call counts, 18 in all, are:
 = -- 0
 > -- 0
