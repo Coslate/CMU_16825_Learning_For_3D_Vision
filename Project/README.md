@@ -63,8 +63,9 @@ CUDA_VISIBLE_DEVICES=4 python train_gs.py \
     --num_itrs 5001 \
     --viz_freq 100 \
     --init_random_numpoints 15000 \
-    --use_sched True \
-    --use_ssim True \
+    --use_sched \
+    --use_ssim \
+    --use_ssim_learn_weight \
     --save_freq 500 \
     --val_step 250 \
     --out_path ./output_gnd_256_5001_15000_0.1_0.1_0.04_0.0140_0.009

@@ -14,7 +14,7 @@ from data_utils_harder_scene import get_nerf_datasets, trivial_collate
 
 from pytorch3d.renderer import PerspectiveCameras
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
-#from pytorch_msssim import ssim as ssim_fn
+from pytorch_msssim import ssim as ssim_fn
 from dataset_gs import NeRFSyntheticDataset
 
 class UncertaintyWeightedLoss(torch.nn.Module):
@@ -51,13 +51,20 @@ class UncertaintyWeightedLoss(torch.nn.Module):
         )
         return total_loss
 
-def save_checkpoint(path, scene, optimizer, schedulers, itr):
-    checkpoint = {
-        'gaussians_state_dict': scene.gaussians.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict(),
-        'schedulers_state_dict': {k: s.state_dict() for k, s in schedulers.items()},
-        'itr': itr
-    }
+def save_checkpoint(path, scene, optimizer, schedulers, itr, args):
+    if args.use_sched:
+        checkpoint = {
+            'gaussians_state_dict': scene.gaussians.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'schedulers_state_dict': {k: s.state_dict() for k, s in schedulers.items()},
+            'itr': itr
+        }
+    else:
+        checkpoint = {
+            'gaussians_state_dict': scene.gaussians.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'itr': itr
+        }
     torch.save(checkpoint, path)
     print(f"[*] Checkpoint saved to {path}")
 
@@ -83,7 +90,7 @@ def make_trainable(gaussians):
     if not gaussians.is_isotropic:
         gaussians.pre_act_quats.requires_grad = True    
 
-def setup_optimizer(gaussians, args, criterion=None):
+def setup_optimizer(gaussians, args, criterion=None, lambda_ssim=None):
 
     gaussians.check_if_trainable()
 
@@ -124,6 +131,9 @@ def setup_optimizer(gaussians, args, criterion=None):
     if criterion is not None:
         parameters.append({'params': [criterion.log_sigma_l1, criterion.log_sigma_ssim], 'lr': 0.01})
 
+    if args.use_ssim and args.use_ssim_learn_weight:
+        parameters.append({'params': [lambda_ssim], 'lr': 0.01, "name": "lambda_ssim"})
+
     # Initialize the Adam optimizer with a small epsilon for numerical stability
     optimizer = torch.optim.Adam(parameters, lr=0.0, eps=1e-15)
 
@@ -142,6 +152,9 @@ def setup_optimizer(gaussians, args, criterion=None):
         if not gaussians.is_isotropic:
             schedulers["quats"] = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=1e-5)  # Full-length gradual updates, the slowest update for quats
             #schedulers["quats"] = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=2e-5)  # Full-length gradual updates, the slowest update for quats
+
+        if args.use_ssim and args.use_ssim_learn_weight:
+            schedulers["lambda_ssim"] = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.num_itrs, eta_min=1e-5)  # Full-length gradual updates, the slowest update for quats
         return optimizer, schedulers
 
     return optimizer, None
@@ -221,9 +234,13 @@ def run_training(args):
     scene = Scene(gaussians)
 
     # Making gaussians trainable and setting up optimizer
+    if args.use_ssim and args.use_ssim_learn_weight:
+        lambda_ssim = torch.nn.Parameter(torch.tensor(0.5), requires_grad=True)
+    else:
+        lambda_ssim = 0.5
     criterion = UncertaintyWeightedLoss().to(args.device) if args.use_uncert else None
     make_trainable(gaussians)
-    optimizer, schedulers = setup_optimizer(gaussians, args, criterion)
+    optimizer, schedulers = setup_optimizer(gaussians, args, criterion, lambda_ssim)
 
     # Load Checkpoint
     start_itr = 0
@@ -306,21 +323,21 @@ def run_training(args):
         ### YOUR CODE HERE ###
         if args.use_ssim:
             # SSIM Loss (optional)
-            lambda_ssim = torch.nn.Parameter(torch.tensor(0.5), requires_grad=True)
-            ssim_loss = 1 - structural_similarity(
-                pred_img.detach().cpu().numpy(),
-                gt_img.detach().cpu().numpy(),
-                channel_axis=-1,
-                data_range=1.0
-            )
-            '''
-            ssim_loss = 1 - ssim_fn(
-                pred_img.permute(2, 0, 1).unsqueeze(0),  #(C, H, W) -> (1, C, H, W)
-                gt_img.permute(2, 0, 1).unsqueeze(0), #(1, C, H, W)
-                data_range=1.0,
-                size_average=True
-            )
-            '''
+            if args.use_ssim_learn_weight:
+                ssim_loss = 1 - ssim_fn(
+                    pred_img.permute(2, 0, 1).unsqueeze(0),  #(C, H, W) -> (1, C, H, W)
+                    gt_img.permute(2, 0, 1).unsqueeze(0), #(1, C, H, W)
+                    data_range=1.0,
+                    size_average=True
+                )
+            else:
+                ssim_loss = 1 - structural_similarity(
+                    pred_img.detach().cpu().numpy(),
+                    gt_img.detach().cpu().numpy(),
+                    channel_axis=-1,
+                    data_range=1.0
+                )
+
             loss = l1(pred_img, gt_img) + lambda_ssim * ssim_loss
         elif args.use_uncert:
             loss = criterion(pred_img, gt_img)
@@ -350,7 +367,7 @@ def run_training(args):
             viz_frames.append(viz_frame)
 
         if itr % args.save_freq == 0:
-            save_checkpoint(save_checkpoint_path, scene, optimizer, schedulers, itr)            
+            save_checkpoint(save_checkpoint_path, scene, optimizer, schedulers, itr, args)
 
         if itr % args.val_step == 0:
             val_loss_total = 0.0
@@ -372,13 +389,20 @@ def run_training(args):
 
                     if args.use_ssim:
                         # SSIM Loss (optional)
-                        lambda_ssim = torch.nn.Parameter(torch.tensor(0.5), requires_grad=True)
-                        ssim_loss = 1 - structural_similarity(
-                            pred_img.detach().cpu().numpy(),
-                            gt_img.detach().cpu().numpy(),
-                            channel_axis=-1,
-                            data_range=1.0
-                        )
+                        if args.use_ssim_learn_weight:
+                            ssim_loss = 1 - ssim_fn(
+                                pred_img.permute(2, 0, 1).unsqueeze(0),  #(C, H, W) -> (1, C, H, W)
+                                gt_img.permute(2, 0, 1).unsqueeze(0), #(1, C, H, W)
+                                data_range=1.0,
+                                size_average=True
+                            )
+                        else:
+                            ssim_loss = 1 - structural_similarity(
+                                pred_img.detach().cpu().numpy(),
+                                gt_img.detach().cpu().numpy(),
+                                channel_axis=-1,
+                                data_range=1.0
+                            )
                         val_loss = l1(pred_img, gt_img) + lambda_ssim * ssim_loss
                     elif args.use_uncert:
                         val_loss = criterion(pred_img, gt_img)
@@ -578,15 +602,19 @@ def get_args():
         help="The path to load checkpoint."
     )
     parser.add_argument(
-        "--use_sched", default=False, type=bool,
+        "--use_sched", action='store_true',
         help="Whether to use scheduler."
     )
     parser.add_argument(
-        "--use_ssim", default=False, type=bool,
+        "--use_ssim", action='store_true',
         help="Whether to use ssim in loss."
     )
     parser.add_argument(
-        "--use_uncert", default=False, type=bool,
+        "--use_ssim_learn_weight", action="store_true",
+        help="Whether to use ssim learnable weight in loss."
+    )
+    parser.add_argument(
+        "--use_uncert", action='store_true',
         help="Whether to use uncertainty weighting in loss."
     )
     parser.add_argument(
