@@ -4,7 +4,7 @@
 > **Author**: Patrick Chen  
 > **Course**: 16-825 Learning for 3D Vision, Carnegie Mellon University  
 > 📄 [View Project Poster (PDF)](./doc/CMU_16825_Final_Project_Poster.pdf)\
-> 📄 [View Project Webpage](https://www.andrew.cmu.edu/course/16-825/projects/bochunc/final_proj/)\
+> 📄 [View Project Webpage](https://coslate.github.io/Uncertainty-Aware-Hybrid-Rendering-with-Gaussian-Splatting-and-NeRF-for-High-Fidelity-Synthesis/)\
 > 📄 [View Project Final Report](./doc/Final_Report/16_825_Project_Final_Report_Team25.pdf)
 
 
