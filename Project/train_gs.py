@@ -344,6 +344,7 @@ def run_training(args):
         else:
             loss = l1(pred_img, gt_img)
 
+        optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
         avg_losses.append(loss.item())
@@ -355,7 +356,6 @@ def run_training(args):
         if args.use_sched:
             for key, scheduler in schedulers.items():
                 scheduler.step()
-        optimizer.zero_grad()
 
         print(f"[*] Itr: {itr:07d} | Loss: {loss:0.3f}")
 
